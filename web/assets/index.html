@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>mymac</title>
+<link rel="icon" href="/static/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="stylesheet" href="/static/style.css">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar glass" id="sidebar">
+    <div class="brand">
+      <img class="brand-icon" src="/static/favicon.svg" alt="" width="34" height="34">
+      <div class="brand-text">
+        <strong>mymac</strong>
+        <span id="brand-version">—</span>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav">
+      <button class="nav-item" data-view="dash">
+        <span class="nav-ico">◔</span><span class="nav-label">仪表盘</span>
+      </button>
+      <button class="nav-item" data-view="apps">
+        <span class="nav-ico">🧹</span><span class="nav-label">应用卸载</span>
+      </button>
+      <button class="nav-item" data-view="clean">
+        <span class="nav-ico">🗑️</span><span class="nav-label">系统清理</span>
+      </button>
+      <button class="nav-item" data-view="procs">
+        <span class="nav-ico">📊</span><span class="nav-label">进程管理</span>
+      </button>
+      <button class="nav-item" data-view="ports">
+        <span class="nav-ico">🔌</span><span class="nav-label">端口管理</span>
+      </button>
+      <button class="nav-item" data-view="login">
+        <span class="nav-ico">🚀</span><span class="nav-label">启动程序</span>
+      </button>
+      <button class="nav-item" data-view="env">
+        <span class="nav-ico">🌱</span><span class="nav-label">环境变量</span>
+      </button>
+      <button class="nav-item" data-view="perm">
+        <span class="nav-ico">🔐</span><span class="nav-label">权限</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <button class="ghost-btn" id="btn-audit">审计日志</button>
+      <select class="theme-select" id="theme-select" title="外观">
+        <option value="system">跟随系统</option>
+        <option value="light">浅色</option>
+        <option value="dark">深色</option>
+      </select>
+      <div class="status-dot" id="conn-status" title="连接状态">●</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar glass">
+      <button class="icon-btn only-mobile" id="btn-menu" aria-label="菜单">☰</button>
+      <h1 id="view-title">应用卸载</h1>
+      <div class="topbar-actions" id="view-actions"></div>
+    </header>
+
+    <section class="view" id="view-dash" hidden>
+      <div class="cards gauges" id="dash-gauges"></div>
+      <div class="panel glass">
+        <div class="panel-head">
+          <h2>系统概况</h2>
+          <div class="panel-tools">
+            <button class="btn" id="dash-refresh">刷新</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table class="table" id="dash-table"></table></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-ports" hidden>
+      <div class="cards" id="ports-summary"></div>
+      <div class="panel glass">
+        <div class="panel-head">
+          <h2>端口占用</h2>
+          <div class="panel-tools">
+            <input class="input" id="ports-search" type="search" placeholder="搜索进程 / 端口 / 用户" autocomplete="off">
+            <select class="input" id="ports-filter">
+              <option value="listen">仅监听端口</option>
+              <option value="all">全部连接</option>
+              <option value="heavy">高占用进程</option>
+            </select>
+            <label class="tag mute"><input type="checkbox" id="ports-system"> 显示系统服务</label>
+            <button class="btn" id="ports-rules">规则</button>
+          </div>
+        </div>
+        <div class="hint">系统服务默认隐藏。「停止 / 强杀 / 重启」都要求携带进程创建时间，PID 被复用时会拒绝操作。</div>
+        <div class="table-wrap"><table class="table" id="ports-table"></table></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-login" hidden>
+      <div class="cards" id="login-summary"></div>
+      <div class="panel glass">
+        <div class="panel-head">
+          <h2>启动程序</h2>
+          <div class="panel-tools">
+            <input class="input" id="login-search" type="search" placeholder="搜索名称 / 程序" autocomplete="off">
+            <label class="tag mute"><input type="checkbox" id="login-system"> 显示系统项</label>
+            <button class="btn" id="login-refresh">刷新</button>
+          </div>
+        </div>
+        <div class="hint">「禁用 / 启用」通过 <code>launchctl</code> 立即生效，但下次登录会恢复；删除 LaunchAgent 则会真正移除它（移入废纸篓，可恢复）。</div>
+        <div class="table-wrap"><table class="table" id="login-table"></table></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-apps">
+      <div class="cards" id="apps-summary"></div>
+      <div class="panel glass">
+        <div class="panel-head">
+          <h2>已安装的应用</h2>
+          <div class="panel-tools">
+            <input class="input" id="apps-search" type="search" placeholder="搜索名称 / Bundle ID" autocomplete="off">
+            <button class="btn" id="apps-rescan">重新扫描</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table class="table" id="apps-table"></table></div>
+      </div>
+      <div class="panel glass" id="apps-uninstall">
+        <div class="panel-head">
+          <h2>卸载列表</h2>
+          <div class="panel-tools">
+            <button class="btn tiny" id="un-check-all">全选</button>
+            <button class="btn tiny" id="un-select-all">全不选</button>
+            <button class="btn tiny" id="un-select-safe">只选安全的</button>
+            <button class="btn tiny" id="un-clear">清空列表</button>
+            <button class="btn danger" id="un-trash" disabled>移到废纸篓</button>
+          </div>
+        </div>
+        <div class="hint">点上面应用行的「卸载」把应用加进这个列表，确认无误后一次性「移到废纸篓」。删除一律进废纸篓，可随时恢复。高风险项（特权辅助工具、Group Container、系统级后台服务）默认不勾选。</div>
+        <div id="un-body"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-clean" hidden>
+      <div class="cards" id="clean-summary"></div>
+      <div class="panel glass">
+        <div class="panel-head">
+          <h2>可清理项</h2>
+          <div class="panel-tools">
+            <button class="btn" id="clean-scan">扫描</button>
+            <button class="btn primary" id="clean-execute" disabled>移到废纸篓</button>
+          </div>
+        </div>
+        <div class="tabs" id="clean-tabs">
+          <button class="tab active" data-mode="cache">缓存 / 日志</button>
+          <button class="tab" data-mode="large">大文件</button>
+          <button class="tab" data-mode="dup">重复文件</button>
+        </div>
+        <div class="hint" id="clean-hint">扫描需要遍历缓存目录并统计实际占用（按 APFS 已分配空间计算，不含克隆），首次可能需要几秒。删除一律移入废纸篓，可随时恢复。</div>
+        <div class="table-wrap"><table class="table" id="clean-table"></table></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-procs" hidden>
+      <div class="cards" id="procs-overview"></div>
+      <div class="panel glass">
+        <div class="panel-head">
+          <h2>进程</h2>
+          <div class="panel-tools">
+            <input class="input" id="procs-search" type="search" placeholder="搜索进程 / PID / 用户" autocomplete="off">
+            <select class="input" id="procs-interval">
+              <option value="1000">1 秒</option>
+              <option value="2000" selected>2 秒</option>
+              <option value="5000">5 秒</option>
+            </select>
+            <button class="btn" id="procs-pause">暂停</button>
+            <button class="btn" id="procs-snapshot">导出快照</button>
+          </div>
+        </div>
+        <div class="table-wrap scroll-60"><table class="table" id="procs-table"></table></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-env" hidden>
+      <div class="panel glass">
+        <div class="panel-head">
+          <h2>环境变量</h2>
+          <div class="panel-tools">
+            <button class="btn" id="env-add">新增</button>
+            <button class="btn" id="env-import">导入</button>
+            <button class="btn" id="env-export">导出</button>
+            <button class="btn" id="env-path">PATH 编辑器</button>
+            <button class="btn" id="env-agent">登录代理</button>
+            <button class="btn" id="env-backups">备份</button>
+          </div>
+        </div>
+        <div class="hint" id="env-hint"></div>
+
+        <details class="explain" id="env-explain">
+          <summary>环境变量是怎么回事？看这里</summary>
+          <div class="explain-body">
+            <p class="lead">macOS 上的环境变量其实有<b>三层</b>，mymac 只能改其中两层。
+              所以「保存后立刻生效」这句话，有前提条件。</p>
+
+            <div class="layer">
+              <div class="layer-head"><span class="tag ok">能改</span> 第 ① 层 · Shell</div>
+              <div class="layer-body">
+                <p><b>管什么：</b>之后新开的终端。</p>
+                <p><b>怎么做的：</b>mymac 把变量写进 <code>~/.config/mymac/env.sh</code>，
+                   再在 <code>~/.zshenv</code> 里加一段标记块去引用它：</p>
+                <pre># &gt;&gt;&gt; mymac env &gt;&gt;&gt;
+[ -f "$HOME/.config/mymac/env.sh" ] &amp;&amp; . "$HOME/.config/mymac/env.sh"
+# &lt;&lt;&lt; mymac env &lt;&lt;&lt;</pre>
+                <p><b>用 .zshenv 而不是 .zshrc：</b>zsh 启动时 <code>.zshenv</code> 最先读，
+                   所以非交互 shell、脚本、IDE 内置终端都能读到。</p>
+                <p class="warn-line">⚠️ <b>已经打开的终端不会变。</b>
+                   在那个终端里执行 <code>source ~/.config/mymac/env.sh</code> 即可。</p>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head"><span class="tag ok">能改</span> 第 ② 层 · launchd</div>
+              <div class="layer-body">
+                <p><b>管什么：</b>之后<b>新启动</b>的图形界面程序——
+                   从 Dock 启动的 Xcode、IDEA、VS Code、微信等。终端程序不算，
+                   它们走第 ① 层。</p>
+                <p><b>怎么做的：</b><code>launchctl setenv KEY VALUE</code>。
+                   写完之后 mymac 会用 <code>launchctl getenv</code> <b>读回来核对</b>，
+                   对不上会如实告诉你，而不是假装成功。</p>
+                <p class="warn-line">⚠️ <b>已经在运行的程序不会变</b>，只能重启它。
+                   表格里会标出「N 个应用需重启」。</p>
+                <p class="warn-line">⚠️ <b>重启电脑后这层会丢失</b>（launchd 的变量不持久）。
+                   所以有「登录代理」：它在每次登录时把变量重新写一遍。</p>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head"><span class="tag bad">改不了</span> 第 ③ 层 · 已运行的进程</div>
+              <div class="layer-body">
+                <p>已经在跑的进程，它的启动环境在进程创建时就固定了，
+                   外部改不了。这是操作系统的限制，不是 mymac 的 bug。</p>
+                <p>唯一的办法是让程序自己重读（<code>source</code>）或者把它重启。</p>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head"><span class="tag info">只读</span> 下面四个标签页是什么</div>
+              <div class="layer-body">
+                <table class="table kv-table">
+                  <tr><td><b>mymac 管理</b></td><td>你在这里增删改的变量，改完立刻按上面两层生效。</td></tr>
+                  <tr><td><b>launchd 环境</b></td><td>当前 launchd 里实际有的变量（只读）。别人（比如别的工具）设的也在里面。</td></tr>
+                  <tr><td><b>Shell 配置</b></td><td>你的 <code>.zshenv</code>、<code>.zprofile</code>、<code>.zshrc</code> 里写的 <code>export</code>（只读）。mymac 不改这些文件，只加自己那一段标记块。</td></tr>
+                  <tr><td><b>当前进程</b></td><td>mymac 自己启动时拿到的环境（只读），用来对照参考。</td></tr>
+                </table>
+                <p class="lead">如果同一个变量在多处出现，「冲突」标记会告诉你<b>谁会覆盖谁</b>。</p>
+              </div>
+            </div>
+
+            <div class="layer">
+              <div class="layer-head"><span class="tag mute">其它按钮</span></div>
+              <div class="layer-body">
+                <table class="table kv-table">
+                  <tr><td><b>PATH 编辑器</b></td><td>只加片段，不整体覆盖。写成
+                    <code>export PATH='片段':"$PATH"</code> 这种动态形式，你以后再改 PATH 也不会被写死。</td></tr>
+                  <tr><td><b>登录代理</b></td><td>登录时把变量重新写进 launchd，解决「重启后丢失」。</td></tr>
+                  <tr><td><b>备份</b></td><td>每次改 <code>.zshenv</code> 前自动备份，可一键恢复。</td></tr>
+                  <tr><td><b>导入 / 导出</b></td><td>JSON 或 <code>.env</code> 格式；导入前会先显示差异让你确认。</td></tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <div class="tabs" id="env-tabs">
+          <button class="tab active" data-src="managed">mymac 管理</button>
+          <button class="tab" data-src="launchd">launchd 环境</button>
+          <button class="tab" data-src="shellFiles">Shell 配置</button>
+          <button class="tab" data-src="self">当前进程</button>
+        </div>
+        <div class="table-wrap"><table class="table" id="env-table"></table></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-perm" hidden>
+      <div class="panel glass">
+        <div class="panel-head">
+          <h2>权限状态</h2>
+          <div class="panel-tools"><button class="btn" id="perm-refresh">重新检测</button></div>
+        </div>
+        <div id="perm-list" class="perm-list"></div>
+      </div>
+      <div class="panel glass">
+        <div class="panel-head"><h2>最近操作审计</h2></div>
+        <div class="table-wrap scroll-40"><table class="table" id="audit-table"></table></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="modal" hidden>
+  <div class="modal glass" role="dialog" aria-modal="true">
+    <h3 id="modal-title">确认</h3>
+    <div id="modal-body" class="modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn" id="modal-cancel">取消</button>
+      <button class="btn primary" id="modal-ok">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+<aside class="drawer glass" id="drawer" hidden aria-label="详情">
+  <div class="drawer-head">
+    <h2 id="drawer-title">详情</h2>
+    <button class="icon-btn" id="drawer-close" aria-label="关闭">✕</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</aside>
+
+<script src="/static/ui.js"></script>
+<script src="/static/views.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

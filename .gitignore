@@ -1,0 +1,10 @@
+# Build artefacts. `make build` and `make bundle` write here.
+build/
+
+# macOS noise
+.DS_Store
+
+# Editors
+*.swp
+.idea/
+.vscode/

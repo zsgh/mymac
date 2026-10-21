@@ -1,0 +1,21 @@
+{
+  "name": "macOS built-in",
+  "ports": [88, 631, 5000, 5353, 7000],
+  "port_ranges": [],
+  "processes": [
+    "launchd", "rapportd", "sharingd",
+    "identityservicesd", "ControlCenter", "WindowServer",
+    "kernel_task", "mDNSResponder", "cupsd",
+    "user"
+  ],
+  "paths": [
+    "/System/",
+    "/usr/libexec/",
+    "/sbin/"
+  ],
+  "users": [
+    "root",
+    "_*"
+  ],
+  "pids": []
+}
