@@ -395,6 +395,7 @@ async function initApps() {
   $('#apps-search').value = appState.search;
   $('#apps-search').oninput = (e) => { appState.search = e.target.value; renderApps(); };
   $('#apps-rescan').onclick = () => loadApps(true);
+  $('#apps-ai').onclick = () => runAI('apps', $('#apps-ai'), () => loadApps(false));
 
   // The uninstall list is a plan: the buttons only change the plan, the
   // single 移到废纸篓 button at the top of the panel is what deletes.
@@ -485,7 +486,7 @@ function renderApps() {
   }
   t.innerHTML = `<thead><tr>${sortHeader(appState, appCols)}</tr></thead><tbody>` +
     items.map(a => `<tr data-bundle="${esc(a.bundleId)}">
-      <td>${a.icon ? `<img src="/api/apps/icon?id=${encodeURIComponent(a.bundleId)}" width="18" height="18" style="vertical-align:-3px;margin-right:6px;border-radius:4px" alt="">` : ''}${esc(a.name)}</td>
+      <td>${a.icon ? `<img src="/api/apps/icon?id=${encodeURIComponent(a.bundleId)}" width="18" height="18" style="vertical-align:-3px;margin-right:6px;border-radius:4px" alt="">` : ''}${esc(a.name)} ${aiBadge(a.ai)}</td>
       <td><button class="btn tiny primary" data-act="uninstall" ${a.isSystem ? 'disabled' : ''}>卸载</button></td>
       <td class="mono muted"><div class="clip-nowrap">${esc(a.bundleId)}</div></td>
       <td class="mono">${esc(a.version || '—')}</td>
@@ -647,6 +648,7 @@ async function showAppDetail(bundleID) {
       <dt>残留文件</dt><dd>${items.length} 项 · ${fmtBytes(residualSize)}</dd>
       <dt>状态</dt><dd>${app.running ? '运行中' : (app.isSystem ? '系统应用' : '空闲')}</dd>
       <dt>最近使用</dt><dd>${used}</dd>
+      ${app.ai ? `<dt>AI 判断</dt><dd>${aiHint(app.ai)}</dd>` : ''}
     </dl>
     <div class="detail-actions" style="margin:14px 0 6px">
       <button class="btn primary" id="app-add-uninstall" ${app.isSystem ? 'disabled' : ''}>加入卸载列表</button>
@@ -848,6 +850,7 @@ async function initClean() {
     loadClean();
   }));
   $('#clean-scan').onclick = () => loadClean();
+  $('#clean-ai').onclick = () => runAI('clean', $('#clean-ai'), loadClean);
   $('#clean-execute').onclick = () => executeClean();
   await loadClean();
 }
@@ -962,7 +965,7 @@ function renderClean(summary) {
   t.innerHTML = `<thead><tr>${sortHeader(cleanState, cleanColsCache)}</tr></thead><tbody>` +
     items.map(it => `<tr>
       <td><input type="checkbox" class="clean-chk" data-path="${esc(it.path)}" ${it.selected ? 'checked' : ''}></td>
-      <td>${esc(it.name)}</td>
+      <td>${esc(it.name)} ${aiBadge(it.ai)}</td>
       <td><span class="tag mute">${esc(it.category)}</span></td>
       <td class="num">${fmtBytes(it.size)}</td>
       <td class="mono wrap muted">${esc(it.path)}</td>
@@ -985,7 +988,8 @@ function showCleanDetail(it) {
   ];
   if (it.mod) rows.push(['修改时间', new Date(it.mod * 1000).toLocaleString()]);
   openDrawer(it.name || it.path || '清理项', `<dl class="kv">${rows.map(r =>
-    `<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>`);
+    `<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>` +
+    (it.ai ? aiHint(it.ai) : ''));
 }
 
 // bindCleanRows makes the rows of the cleanup table open the detail.
@@ -1142,7 +1146,7 @@ async function initProcs() {
   $('#procs-runtime').oninput = (e) => { procState.runtime = +e.target.value || 0; renderProcs(); };
   $('#procs-interval').onchange = (e) => { procState.interval = +e.target.value; restartStream(); };
   $('#procs-refresh').onclick = () => loadProcs();
-  $('#procs-analyze').onclick = () => analyzeProcs();
+  $('#procs-analyze').onclick = () => runAI('procs', $('#procs-analyze'), loadProcs);
   $('#procs-snapshot').onclick = exportSnapshot;
   const wrap = $('#procs-table').closest('.table-wrap');
   wrap.addEventListener('scroll', () => renderProcRows());
@@ -1167,121 +1171,6 @@ async function loadProcs() {
   }
 }
 
-// analyzeProcs asks the model what the running programs are.
-//
-// The names are not enough: ten processes called "python3.11" could be
-// anything. The paths and the command line say more, and the model can
-// read them.
-async function analyzeProcs() {
-  if (!await aiReady()) return;
-  const btn = $('#procs-analyze');
-  btn.disabled = true;
-  btn.textContent = '分析中…';
-  try {
-    await api('/api/procs/analyze', { method: 'POST' });
-    toast('AI 正在看这些进程，稍等一下', 'ok');
-    const done = await waitForAnalysis('/api/procs/analyze', btn);
-    if (done === 'error') {
-      toast('AI 分析失败', 'err');
-    } else if (done === 'timeout') {
-      toast('AI 分析还没结束，可以再等等', 'err');
-    } else {
-      toast('AI 说明完成', 'ok');
-    }
-  } catch (e) {
-    toast(e.message, 'err');
-  }
-  btn.disabled = false;
-  btn.textContent = 'AI 分析';
-}
-
-const procCols = [
-  { key: 'pid', label: 'PID', cls: 'mono' },
-  { key: 'ppid', label: 'PPID', cls: 'mono' },
-  { key: 'name', label: '名称' },
-  { key: 'user', label: '用户' },
-  { key: 'cpu', label: 'CPU%', cls: 'num' },
-  { key: 'mem', label: '内存', cls: 'num' },
-  { key: 'threads', label: '线程', cls: 'num' },
-  { key: 'fds', label: 'fd', cls: 'num' },
-  { key: 'arch', label: '架构' },
-  { key: 'state', label: '状态' },
-  { key: 'startTime', label: '运行时长' },
-  { key: 'appName', label: '来源' },
-  { key: '', label: '操作' },
-];
-
-// procAccessors reads the value of a column for the sorting.
-const procAccessors = {
-  pid: p => p.pid,
-  ppid: p => p.ppid,
-  name: p => p.name,
-  user: p => p.user || '',
-  cpu: p => p.cpu || 0,
-  mem: p => p.mem || 0,
-  threads: p => p.threads || 0,
-  fds: p => p.fds || 0,
-  arch: p => p.arch || '',
-  state: p => p.state || '',
-  startTime: p => p.startTime || 0,
-  appName: p => p.appName || '',
-};
-
-function restartStream() {
-  procState.es?.close();
-  procState.es = null;
-  // "不刷新" means the table keeps the processes of the moment.
-  if (!procState.interval) return;
-  const es = new EventSource(`/api/procs/stream?interval=${procState.interval}`);
-  procState.es = es;
-  es.onmessage = (ev) => {
-    // A frame proves the stream works, but the dot is about the server as
-    // a whole: the heartbeat and the regular requests decide that. Keeping
-    // one signal avoids the dot flapping while the server is shutting down
-    // and the old stream is still draining.
-    try {
-      const d = JSON.parse(ev.data);
-      procState.rows = d.processes || [];
-      renderProcs();
-    } catch { /* ignore malformed frames */ }
-  };
-  es.onerror = () => {
-    // The stream may have dropped on its own. Ask the server instead of
-    // guessing: the dot says whether the server answers, not whether this
-    // one stream is alive.
-    conn.check();
-  };
-}
-
-// renderProcStats fills the cards above the process table.
-//
-// The system overview (CPU / 内存 / 磁盘) lives on the dashboard; repeating
-// it here would say nothing about the processes, so these numbers are all
-// about the process table itself.
-function renderProcStats() {
-  const rows = procState.rows || [];
-  let threads = 0, fds = 0, user = 0, system = 0, zombie = 0, rosetta = 0;
-  for (const p of rows) {
-    threads += p.threads || 0;
-    fds += p.fds || 0;
-    if (p.protected) system++; else user++;
-    if (p.state === 'zombie') zombie++;
-    if (p.rosetta) rosetta++;
-  }
-  const avg = rows.length ? Math.round(threads / rows.length) : 0;
-  $('#procs-overview').innerHTML = [
-    card('进程', fmtNum(rows.length), `用户 ${user} / 系统 ${system}`),
-    card('线程', fmtNum(threads), `平均 ${avg} 个`),
-    card('文件描述符', fmtNum(fds), '合计占用'),
-    card('僵尸进程', fmtNum(zombie), zombie ? '父进程已退出' : '没有僵尸'),
-    card('Rosetta', fmtNum(rosetta), 'x86 转译进程'),
-  ].join('');
-}
-
-// renderProcs sorts and filters the rows, then draws the visible window.
-//
-// The table is virtualised: only the rows inside the viewport are in the
-// DOM, so a machine with a thousand processes still scrolls smoothly.
 function renderProcs() {
   const q = procState.filter.trim().toLowerCase();
   let rows = procState.rows;
@@ -1372,7 +1261,7 @@ function procRow(p) {
   return `<tr data-pid="${p.pid}">
     <td class="mono">${p.pid}</td>
     <td class="mono muted">${p.ppid}</td>
-    <td title="${p.depth ? '进程树的第 ' + p.depth + ' 层' : ''}">${p.protected ? '🔒 ' : ''}<span class="tree-depth">${'·'.repeat(Math.min(p.depth || 0, 6))}</span>${esc(p.name)}${p.self ? ' <span class="tag info">本进程</span>' : ''}${p.note ? ` <span class="tag ${p.noteRisk === 'high' ? 'bad' : p.noteRisk === 'medium' ? 'warn' : 'info'}" title="${esc(p.note + (p.notePurpose ? '：' + p.notePurpose : ''))}">AI</span>` : ''}</td>
+    <td title="${p.depth ? '进程树的第 ' + p.depth + ' 层' : ''}">${p.protected ? '🔒 ' : ''}<span class="tree-depth">${'·'.repeat(Math.min(p.depth || 0, 6))}</span>${esc(p.name)}${p.self ? ' <span class="tag info">本进程</span>' : ''} ${aiBadge(p.ai)}</td>
     <td class="muted">${esc(p.user || '')}</td>
     <td class="num">${(p.cpu ?? 0).toFixed(1)}</td>
     <td class="num">${fmtBytes(p.mem)}</td>
@@ -1506,6 +1395,7 @@ async function initEnv() {
     envState.source = t.dataset.src;
     renderEnv();
   }));
+  $('#env-ai').onclick = () => runAI('env', $('#env-ai'), loadEnv);
   $('#env-add').onclick = () => envEditor(null);
   $('#env-import').onclick = () => envImport();
   $('#env-export').onclick = () => envExport();
@@ -1610,7 +1500,7 @@ function renderEnv() {
         const conflict = (v.conflicts || []).length;
         const stale = v.needsRestart || [];
         return `<tr data-name="${esc(v.name)}">
-          <td class="mono">${esc(v.name)}${conflict ? ` <span class="tag warn" title="${esc((v.conflicts || []).map(c => c.source).join(', '))}">冲突</span>` : ''}</td>
+          <td class="mono">${esc(v.name)}${conflict ? ` <span class="tag warn" title="${esc((v.conflicts || []).map(c => c.source).join(', '))}">冲突</span>` : ''} ${aiBadge(v.ai)}</td>
           <td class="mono">${shown ? esc(v.value) : '<span class="masked">••••••••</span>'}</td>
           <td class="muted wrap">${esc(v.note || '')}${stale.length ? `<br><span class="tag mute" title="${esc(stale.join(', '))}">${stale.length} 个应用需重启</span>` : ''}</td>
           <td>${v.shellApplied ? '<span class="tag ok">已写入</span>' : '<span class="tag mute">未写入</span>'}</td>
@@ -1679,6 +1569,7 @@ function showEnvDetail(source, v) {
 
   openDrawer(v.name, `<dl class="kv">${rows.map(r =>
     `<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>` +
+    (v.ai ? aiHint(v.ai) : '') +
     (conflicts ? `<h3 style="font-size:13px;margin:14px 0 0">冲突</h3><div class="path-list">${conflicts}</div>` : ''));
 }
 

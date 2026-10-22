@@ -110,24 +110,24 @@ func TestAskReportsTheError(t *testing.T) {
 	}
 }
 
-// TestAnalyzeAgainstTheFakeService checks the whole path: the question goes
-// out, the answer comes back as assessments.
-func TestAnalyzeAgainstTheFakeService(t *testing.T) {
+// TestJudgeAgainstTheFakeService checks the whole path: the question goes
+// out, the answer comes back as verdicts.
+func TestJudgeAgainstTheFakeService(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":
-			"[{\"label\":\"com.example.agent\",\"risk\":\"high\",\"reason\":\"可疑\"}]"}}]}`))
+			"[{\"key\":\"com.example.agent\",\"level\":\"high\",\"label\":\"可疑\",\"reason\":\"可疑\"}]"}}]}`))
 	}))
 	defer srv.Close()
 
 	c := New(Config{BaseURL: srv.URL, Model: "m"})
-	got, err := c.Analyze(context.Background(), []Subject{{Label: "com.example.agent", Kind: "launchAgent"}})
+	got, err := c.Judge(context.Background(), "system", "question", []Item{{Key: "com.example.agent", Name: "agent"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(got) != 1 {
-		t.Fatalf("got %d assessments", len(got))
+		t.Fatalf("got %d verdicts", len(got))
 	}
-	if got[0].Risk != RiskHigh || got[0].Reason != "可疑" {
-		t.Errorf("assessment = %+v", got[0])
+	if got[0].Level != LevelHigh || got[0].Reason != "可疑" {
+		t.Errorf("verdict = %+v", got[0])
 	}
 }

@@ -22,6 +22,7 @@ import (
 	"syscall"
 	"time"
 
+	"mymac/internal/ai"
 	"mymac/internal/api"
 	"mymac/internal/apps"
 	"mymac/internal/audit"
@@ -61,6 +62,11 @@ type Server struct {
 
 	loginItems *loginitems.Collector
 	settings   *settings.Store
+
+	// aiCache keeps the verdicts of the analyses.
+	aiCache *ai.Cache
+	// runner runs the analyses in the background.
+	runner *analysisRunner
 
 	cleanJobs *cleaner.JobManager
 }
@@ -111,16 +117,13 @@ func New(opts Options) (*Server, error) {
 	if opts.Env == nil {
 		opts.Env = envs.NewManager(envs.Options{Audit: opts.Audit})
 	}
-	// The settings come first: the collectors ask them for the model, and
-	// a store that does not exist yet would leave them without one.
+	// The settings come first: the model is asked for them every time.
 	if opts.Settings == nil {
 		opts.Settings = settings.NewStore()
 	}
 	if opts.Procs == nil {
 		opts.Procs = procs.NewCollector(2 * time.Second)
 	}
-	// The collector explains the processes when the user asks for it.
-	opts.Procs.SetAI(aiProviderFor(opts.Settings))
 	if opts.Sysinfo == nil {
 		opts.Sysinfo = sysinfo.NewCollector()
 	}
@@ -146,7 +149,7 @@ func New(opts Options) (*Server, error) {
 		opts.Settings = settings.NewStore()
 	}
 	if opts.LoginItems == nil {
-		opts.LoginItems = loginitems.NewCollectorWithAI(aiProviderFor(opts.Settings))
+		opts.LoginItems = loginitems.NewCollector()
 	}
 	if opts.CleanJobs == nil {
 		opts.CleanJobs = cleaner.NewJobManager()
@@ -168,6 +171,8 @@ func New(opts Options) (*Server, error) {
 
 		loginItems: opts.LoginItems,
 		settings:   opts.Settings,
+		aiCache:    ai.NewCache(),
+		runner:     &analysisRunner{running: map[string]bool{}, errors: map[string]string{}, started: map[string]time.Time{}},
 		cleanJobs:  opts.CleanJobs,
 	}
 	s.routes()
@@ -404,12 +409,9 @@ func (s *Server) apiHandlers() map[string]http.HandlerFunc {
 		"POST /api/loginitems/remove":       s.handleLoginItemRemove,
 		"POST /api/loginitems/group/state":  s.handleLoginItemGroupState,
 		"POST /api/loginitems/group/remove": s.handleLoginItemGroupRemove,
-		"GET /api/loginitems/analyze":       s.handleLoginItemAnalysisStatus,
-		"POST /api/loginitems/analyze":      s.handleLoginItemAnalyze,
-
-		// The explanation of the running processes.
-		"GET /api/procs/analyze":  s.handleProcAnalysisStatus,
-		"POST /api/procs/analyze": s.handleProcAnalyze,
+		// The AI analyses.
+		"POST /api/ai/analyze": s.handleAIAnalyze,
+		"GET /api/ai/status":   s.handleAIStatus,
 
 		// The settings.
 		"GET /api/settings":       s.handleSettingsGet,

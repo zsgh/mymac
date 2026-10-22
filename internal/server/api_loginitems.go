@@ -13,7 +13,14 @@ import (
 
 // handleLoginItems lists the startup items.
 func (s *Server) handleLoginItems(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, s.loginItems.Collect(r.Context()))
+	list := s.loginItems.Collect(r.Context())
+	// The verdict of the AI, if there was an analysis.
+	for i := range list.Items {
+		if v := s.verdictOf(AnalysisLoginItems, list.Items[i].Label); v != nil {
+			list.Items[i].AI = v
+		}
+	}
+	writeJSON(w, http.StatusOK, list)
 }
 
 // handleLoginItemState enables or disables a startup item.
@@ -66,45 +73,6 @@ func (s *Server) handleLoginItemRemove(w http.ResponseWriter, r *http.Request) {
 		Result: audit.ResultOK,
 	})
 	writeJSON(w, http.StatusOK, api.OKResponse{OK: true})
-}
-
-// handleLoginItemAnalysisStatus returns the state of the risk analysis.
-//
-// The interface polls this while the analysis runs, so it has to be able
-// to say that something went wrong.
-func (s *Server) handleLoginItemAnalysisStatus(w http.ResponseWriter, r *http.Request) {
-	st := s.loginItems.Status()
-	writeJSON(w, http.StatusOK, api.LoginItemAnalyzeResponse{
-		Available: st.Available,
-		Analyzing: st.Analyzing,
-		Count:     st.Count,
-		At:        st.At,
-		Error:     st.Error,
-	})
-}
-
-// handleLoginItemAnalyze starts a risk analysis of the startup items.
-//
-// The analysis asks an AI, which takes a while, so it runs in the background
-// and the verdicts show up in the list once they are in.
-func (s *Server) handleLoginItemAnalyze(w http.ResponseWriter, r *http.Request) {
-	if err := s.loginItems.Analyze(r.Context()); err != nil {
-		writeError(w, http.StatusBadRequest, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, s.analyzeStatus())
-}
-
-// analyzeStatus returns the state of the risk analysis.
-func (s *Server) analyzeStatus() api.LoginItemAnalyzeResponse {
-	st := s.loginItems.Status()
-	return api.LoginItemAnalyzeResponse{
-		Available: st.Available,
-		Analyzing: st.Analyzing,
-		Count:     st.Count,
-		At:        st.At,
-		Error:     st.Error,
-	}
 }
 
 // handleLoginItemGroupRemove deletes every startup item of one program.

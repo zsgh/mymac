@@ -6,6 +6,7 @@ const dashState = { timer: null, sort: 'name', sortDesc: false };
 
 async function initDash() {
   $('#dash-refresh').onclick = () => loadDash();
+  $('#dash-ai').onclick = () => runAI('dash', $('#dash-ai'), loadDash);
   await loadDash();
   clearInterval(dashState.timer);
   dashState.timer = setInterval(loadDash, 4000);
@@ -19,6 +20,12 @@ async function loadDash() {
     o = await api('/api/system/overview');
   } catch (e) {
     return;
+  }
+
+  // The verdict of the AI about the machine, if there was an analysis.
+  const aiBox = $('#dash-ai-hint');
+  if (aiBox) {
+    aiBox.innerHTML = o.ai ? aiHint(o.ai) : '';
   }
 
   const gauges = [
@@ -163,6 +170,7 @@ const portAccessors = {
 async function initPorts() {
   $('#ports-search').oninput = (e) => { portState.search = e.target.value; renderPorts(); };
   $('#ports-filter').onchange = (e) => { portState.filter = e.target.value; renderPorts(); };
+  $('#ports-ai').onclick = () => runAI('ports', $('#ports-ai'), loadPorts);
   $('#ports-system').onchange = (e) => { portState.system = e.target.checked; loadPorts(); };
   $('#ports-rules').onclick = showPortRules;
   await loadPorts();
@@ -223,7 +231,7 @@ function renderPorts() {
       const self = !!p.self;
       return `<tr data-pid="${p.pid}" data-ct="${p.createTime}">
         <td class="mono">${p.pid}</td>
-        <td>${system ? '🔒 ' : ''}${esc(p.name)}${self ? ' <span class="tag info">本进程</span>' : ''}</td>
+        <td>${system ? '🔒 ' : ''}${esc(p.name)}${self ? ' <span class="tag info">本进程</span>' : ''} ${aiBadge(p.ai)}</td>
         <td class="muted">${esc(p.username || '')}</td>
         <td class="mono"><div class="clip" title="${esc(allPorts.join(', '))}">${shown ? esc(shown) : '<span class="muted">—</span>'}${more}</div></td>
         <td class="num">${p.connections.length}</td>
@@ -292,6 +300,7 @@ async function showPortDetail(pid) {
     </div>`).join('');
 
   openDrawer(`${p.name} · pid ${p.pid}`, `<div class="detail-head">
+      ${p.ai ? aiBadge(p.ai) : ''}
       ${p.decision?.is_system ? '<span class="tag bad">系统服务</span>' : ''}
       ${p.self ? '<span class="tag info">这是 mymac 自己</span>' : ''}
       <div class="detail-actions">
@@ -374,8 +383,8 @@ function showLoginDetail(label) {
     <dt>来源</dt><dd>${esc(i.source || '—')}</dd>
     <dt>plist</dt><dd>${esc(i.plistPath || '—')}</dd>
     <dt>状态</dt><dd>${i.enabled ? '已启用' : '已禁用'}${i.loaded ? ' · 运行中' : ''}${i.pid ? ' · pid ' + i.pid : ''}</dd>
-    <dt>风险</dt><dd>${i.risk
-        ? `${riskBadge(i.risk, i.riskReason)} ${esc(i.riskReason || '')}`
+    <dt>AI 判断</dt><dd>${i.ai
+        ? aiHint(i.ai)
         : '<span class="muted">还没有分析过</span>'}</dd>
     <dt>禁用</dt><dd>${i.disableable
         ? '只影响下次启动：正在运行的进程不会停，登录后不再启动'
@@ -404,7 +413,7 @@ const loginAccessors = {
   kind: i => (i.kind || '').toLowerCase(),
   program: i => (i.program || '').toLowerCase(),
   enabled: i => (i.enabled ? 1 : 0),
-  risk: i => ({ high: 3, medium: 2, low: 1 }[i.risk] || 0),
+  risk: i => ({ high: 3, medium: 2, low: 1 }[i.ai && i.ai.level] || 0),
   source: i => (i.source || '').toLowerCase(),
 };
 
@@ -412,284 +421,8 @@ async function initLogin() {
   $('#login-search').oninput = (e) => { loginState.search = e.target.value; renderLogin(); };
   $('#login-system').onchange = (e) => { loginState.system = e.target.checked; renderLogin(); };
   $('#login-refresh').onclick = () => loadLogin();
-  $('#login-analyze').onclick = () => analyzeLoginItems();
+  $('#login-analyze').onclick = () => runAI('loginitems', $('#login-analyze'), loadLogin);
   await loadLogin();
-}
-
-// analyzeLoginItems asks the AI to rate the startup items.
-//
-// The analysis takes a while — a thinking model needs a couple of minutes for
-// a list this long — so it runs in the background. The button waits and
-// reports what happened, including the failures.
-async function analyzeLoginItems() {
-  if (!await aiReady()) return;
-  const btn = $('#login-analyze');
-  btn.disabled = true;
-  btn.textContent = '分析中…';
-  try {
-    await api('/api/loginitems/analyze', { method: 'POST' });
-    toast('AI 正在评估，稍等一下', 'ok');
-    const done = await waitForAnalysis('/api/loginitems/analyze', btn);
-    if (done === 'error') {
-      toast('AI 分析失败，详情见设置页', 'err');
-    } else if (done === 'timeout') {
-      toast('AI 分析还没结束，可以再等等', 'err');
-    } else {
-      toast('AI 评估完成', 'ok');
-    }
-  } catch (e) {
-    toast(e.message, 'err');
-  }
-  btn.disabled = false;
-  btn.textContent = 'AI 风险分析';
-  loadLogin();
-}
-
-// waitForAnalysis waits until the analysis is done.
-//
-// The status endpoint says whether the analysis is still running and why it
-// failed, so the interface never has to guess.
-async function waitForAnalysis(statusPath, btn) {
-  const started = Date.now();
-  for (let i = 0; i < 300; i++) {
-    await new Promise(r => setTimeout(r, 2000));
-    const st = await api(statusPath);
-    if (st.error) {
-      console.error('分析失败:', st.error);
-      toast(st.error, 'err');
-      return 'error';
-    }
-    if (!st.analyzing) {
-      // The analysis is over: either it worked or nothing came back.
-      return st.count > 0 ? 'done' : 'error';
-    }
-    const sec = Math.round((Date.now() - started) / 1000);
-    if (btn) btn.textContent = `分析中… ${sec}s`;
-  }
-  return 'timeout';
-}
-
-async function loadLogin() {
-  showLoading('#login-table', '正在读取启动项…');
-  try {
-    const d = await api('/api/loginitems');
-    loginState.data = d;
-    renderLogin();
-  } catch (e) {
-    showError('#login-table', e.message);
-  }
-}
-
-function renderLogin() {
-  const d = loginState.data;
-  if (!d) return;
-  const q = loginState.search.trim().toLowerCase();
-  // The counts describe the whole list, the search only narrows the table.
-  let all = d.items || [];
-  if (!loginState.system) all = all.filter(i => !i.isSystem);
-  let rows = all;
-  if (q) {
-    rows = rows.filter(i =>
-      i.label.toLowerCase().includes(q) ||
-      (i.program || '').toLowerCase().includes(q) ||
-      (i.groupName || '').toLowerCase().includes(q));
-  }
-
-  rows = sortRows(rows, loginState, loginAccessors);
-
-  const kinds = {};
-  for (const i of all) kinds[i.kind] = (kinds[i.kind] || 0) + 1;
-  const disabled = all.filter(i => !i.enabled).length;
-  const high = all.filter(i => i.risk === 'high').length;
-  const rated = all.filter(i => i.risk).length;
-
-  const cards = [
-    card('启动项', String(all.length), 'launchd 服务与代理'),
-    card('LaunchAgent', String(kinds.launchAgent || 0), '用户级'),
-    card('LaunchDaemon', String(kinds.launchDaemon || 0), '系统级'),
-    card('已禁用', String(disabled), '下次登录不再启动'),
-  ];
-  if (rated) {
-    cards.push(card('高风险', String(high), high ? '值得看一眼' : 'AI 没有发现高风险项'));
-  }
-  $('#login-summary').innerHTML = cards.join('');
-
-  const t = $('#login-table');
-  if (!rows.length) {
-    t.innerHTML = '<tbody><tr><td class="empty">没有匹配的启动项</td></tr></tbody>';
-    return;
-  }
-  const kindLabel = { launchAgent: 'LaunchAgent', launchDaemon: 'LaunchDaemon', loginItem: '登录项', service: '服务' };
-
-  // The tree: one branch per program, the startup items below it. The
-  // program is what the user thinks of, and one program often brings
-  // several items with it.
-  const groups = [];
-  const byKey = new Map();
-  for (const i of rows) {
-    const key = i.groupKey || i.label;
-    let g = byKey.get(key);
-    if (!g) {
-      g = { key, name: i.groupName || i.label, items: [] };
-      byKey.set(key, g);
-      groups.push(g);
-    }
-    g.items.push(i);
-  }
-  groups.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'));
-
-  let html = `<thead><tr>${sortHeader(loginState, loginCols)}</tr></thead><tbody>`;
-  for (const g of groups) {
-    const collapsed = loginState.collapsed.has(g.key);
-
-    // A program with a single startup item needs no branch: the row is
-    // the program, the item is written under its name.
-    if (g.items.length === 1) {
-      const i = g.items[0];
-      // A program with one item has no branch to fold, so the row stays.
-      html += `<tr class="tree-leaf" data-label="${esc(i.label)}">
-        <td class="mono"><button class="tree-toggle" data-toggle="${esc(g.key)}" title="展开 / 收起">${collapsed ? '▸' : '▾'}</button><b>${esc(g.name)}</b>${g.name === i.label ? '' : `<div class="clip muted tree-sub">${esc(i.label)}</div>`}</td>
-        <td><span class="tag mute">${esc(kindLabel[i.kind] || i.kind)}</span></td>
-        <td>${itemState(i)}</td>
-        <td>${riskBadge(i.risk, i.riskReason)}</td>
-        <td class="muted"><div class="clip">${esc(i.source || '—')}</div></td>
-        <td>${itemActions(i)}</td>
-      </tr>`;
-      continue;
-    }
-
-    const high = g.items.filter(i => i.risk === 'high').length;
-    const medium = g.items.filter(i => i.risk === 'medium').length;
-    html += `<tr class="tree-group" data-group="${esc(g.key)}">
-      <td class="mono"><button class="tree-toggle" data-toggle="${esc(g.key)}" title="展开 / 收起">${collapsed ? '▸' : '▾'}</button><b>${esc(g.name)}</b> <span class="muted">${g.items.length}</span></td>
-      <td></td>
-      <td class="muted">${groupSummary(g)}</td>
-      <td>${riskBadges(high, medium, g.items.filter(i => i.risk === 'low').length)}</td>
-      <td></td>
-      <td class="group-actions">${groupButton(g)}${groupRemoveButton(g)}</td>
-    </tr>`;
-    if (collapsed) continue;
-    for (const i of g.items) {
-      html += `<tr class="tree-child" data-label="${esc(i.label)}">
-        <td class="mono"><div class="clip" title="${esc(i.program || i.label)}">${esc(i.label)}</div></td>
-        <td><span class="tag mute">${esc(kindLabel[i.kind] || i.kind)}</span></td>
-        <td>${itemState(i)}</td>
-        <td>${riskBadge(i.risk, i.riskReason)}</td>
-        <td class="muted"><div class="clip">${esc(i.source || '—')}</div></td>
-        <td>${itemActions(i)}</td>
-      </tr>`;
-    }
-  }
-  html += '</tbody>';
-  t.innerHTML = html;
-
-  bindSort('#login-table', loginState, renderLogin);
-
-  // The tree: clicking the arrow folds a program away.
-  $$('#login-table [data-toggle]').forEach(b => b.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const key = b.dataset.toggle;
-    if (loginState.collapsed.has(key)) loginState.collapsed.delete(key);
-    else loginState.collapsed.add(key);
-    renderLogin();
-  }));
-
-  // The buttons of a program live in its header row.
-  $$('#login-table button[data-act="group"]').forEach(b => b.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    await toggleGroup(b.dataset.group, b.dataset.enable === 'true');
-  }));
-  $$('#login-table button[data-act="group-remove"]').forEach(b => b.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    await removeGroup(b.dataset.group);
-  }));
-
-  $$('#login-table tbody tr[data-label]').forEach(tr => {
-    const label = tr.dataset.label;
-    tr.classList.add('clickable');
-    // Clicking the row opens the details of the startup item.
-    tr.addEventListener('click', () => showLoginDetail(label));
-    $$('button[data-act]', tr).forEach(b => b.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      if (b.dataset.act === 'toggle') {
-        const enabled = b.dataset.enabled !== 'true';
-        try {
-          await api('/api/loginitems/state', { method: 'POST', body: { label, enabled } });
-          toast(enabled ? '已启用' : '已禁用', 'ok');
-          loadLogin();
-        } catch (e) { toast(e.message, 'err'); }
-      } else if (b.dataset.act === 'group') {
-        await toggleGroup(b.dataset.group, b.dataset.enable === 'true');
-      } else if (b.dataset.act === 'remove') {        const ok = await modal({
-          title: '删除启动项',
-          body: `<p>确认删除 <code>${esc(b.dataset.path)}</code>？文件会移入废纸篓，可随时恢复。</p>`,
-          okText: '删除', danger: true,
-        });
-        if (!ok) return;
-        try {
-          await api('/api/loginitems/remove', { method: 'POST', body: { path: b.dataset.path } });
-          toast('已移入废纸篓', 'ok');
-          loadLogin();
-        } catch (e) { toast(e.message, 'err'); }
-      }
-    }));
-  });
-}
-
-// groupRemoveButton renders the button that removes every startup item of
-// one program.
-//
-// The files go to the Trash, so a mistake can be undone.
-function groupRemoveButton(g) {
-  const removable = g.items.filter(i => i.removable && i.plistPath);
-  if (!removable.length) return '';
-  return `<button class="btn tiny danger" data-act="group-remove" data-group="${esc(g.key)}" title="把这个程序的启动项全部移入废纸篓">全部删除 ${removable.length}</button>`;
-}
-
-// removeGroup deletes every startup item of one program.
-async function removeGroup(group) {
-  const d = loginState.data;
-  const items = ((d && d.items) || []).filter(i => i.groupKey === group);
-  const removable = items.filter(i => i.removable && i.plistPath);
-  if (!removable.length) {
-    toast('这个程序没有可以删除的启动项', 'err');
-    return;
-  }
-  const needsAdmin = removable.some(i => (i.source || '').startsWith('/Library/'));
-  const body = `<p>确认删除 <b>${esc(items[0] ? items[0].groupName : '')}</b> 的 ${removable.length} 个启动项？</p>
-    <div class="path-list">${removable.map(i => `<div class="path-item"><span class="sp">${esc(i.plistPath)}</span></div>`).join('')}</div>
-    <p class="muted">文件会移入废纸篓，可随时恢复。${needsAdmin ? '<br>系统级的启动项需要管理员密码。' : ''}</p>`;
-  const ok = await modal({ title: '删除启动项', body, okText: '删除', danger: true });
-  if (!ok) return;
-  try {
-    const r = await api('/api/loginitems/group/remove', { method: 'POST', body: { group } });
-    if (r.failed && r.failed.length) {
-      toast(`删了 ${r.moved.length} 项，失败 ${r.failed.length} 项`, 'err');
-    } else if (r.skipped && r.skipped.length) {
-      toast(`删了 ${r.moved.length} 项，跳过 ${r.skipped.length} 项（没有自己的文件）`, 'ok');
-    } else {
-      toast(`已删除 ${r.moved.length} 项`, 'ok');
-    }
-    loadLogin();
-  } catch (e) { toast(e.message, 'err'); }
-}
-
-// itemState renders the state of one startup item.
-function itemState(i) {
-  return (i.enabled
-      ? '<span class="tag ok">已启用</span>'
-      : '<span class="tag bad">已禁用</span>') +
-    (i.loaded ? ' <span class="tag info">运行中</span>' : '') +
-    (i.pid ? ' <span class="muted mono">pid ' + i.pid + '</span>' : '');
-}
-
-// itemActions renders the buttons of one startup item.
-//
-// The single item buttons stay even though the program has a button of its
-// own: sometimes only one of the items should go.
-function itemActions(i) {
-  return `<button class="btn tiny" data-act="toggle" data-enabled="${i.enabled}"${i.disableable ? '' : ' disabled title="旧式登录项不能禁用，请到「系统设置 → 通用 → 登录项」中移除"'}>${i.enabled ? '禁用' : '启用'}</button>` +
-    (i.removable ? `<button class="btn tiny danger" data-act="remove" data-path="${esc(i.plistPath || '')}">删除</button>` : '');
 }
 
 // groupSummary describes the state of a program in one line.
@@ -701,22 +434,18 @@ function groupSummary(g) {
   return out;
 }
 
-// riskBadges renders the risk counts of a program.
-function riskBadges(high, medium, low) {
-  if (!high && !medium && !low) return '<span class="muted">—</span>';
+// aiBadges renders the verdicts of a program: how many items are worth a
+// second look.
+function aiBadges(items) {
+  const rated = items.filter(i => i.ai);
+  if (!rated.length) return '<span class="muted">—</span>';
+  const high = rated.filter(i => i.ai.level === 'high').length;
+  const medium = rated.filter(i => i.ai.level === 'medium').length;
   let out = '';
   if (high) out += `<span class="tag bad">高 ${high}</span> `;
   if (medium) out += `<span class="tag warn">中 ${medium}</span> `;
-  if (low) out += `<span class="tag ok">低 ${low}</span>`;
+  if (!high && !medium) out = `<span class="tag ok">低 ${rated.length}</span>`;
   return out;
-}
-
-// riskBadge renders the verdict of the AI about one item.
-function riskBadge(level, reason) {
-  if (!level) return '<span class="muted">—</span>';
-  const cls = level === 'high' ? 'bad' : level === 'medium' ? 'warn' : 'ok';
-  const label = level === 'high' ? '高风险' : level === 'medium' ? '中风险' : '低风险';
-  return `<span class="tag ${cls}" title="${esc(reason || '')}">${label}</span>`;
 }
 
 // groupButton renders the button that turns every startup item of one

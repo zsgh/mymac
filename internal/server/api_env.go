@@ -17,6 +17,12 @@ func (s *Server) handleEnvVars(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
+	// The verdict of the AI, if there was an analysis.
+	for i := range snap.Managed {
+		if v := s.verdictOf(AnalysisEnv, snap.Managed[i].Name); v != nil {
+			snap.Managed[i].AI = v
+		}
+	}
 	writeJSON(w, http.StatusOK, snap)
 }
 

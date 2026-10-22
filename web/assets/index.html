@@ -77,10 +77,12 @@
 
     <section class="view" id="view-dash" hidden>
       <div class="cards gauges" id="dash-gauges"></div>
+      <div id="dash-ai-hint"></div>
       <div class="panel glass">
         <div class="panel-head">
           <h2>系统概况</h2>
           <div class="panel-tools">
+            <button class="btn" id="dash-ai" title="让 AI 看看这台机器有什么问题">AI 分析</button>
             <button class="btn" id="dash-refresh">刷新</button>
           </div>
         </div>
@@ -132,6 +134,7 @@
           <h2>端口占用</h2>
           <div class="panel-tools">
             <input class="input" id="ports-search" type="search" placeholder="搜索进程 / 端口 / 用户" autocomplete="off">
+            <button class="btn" id="ports-ai" title="让 AI 判断这些端口占用正不正常">AI 分析</button>
             <select class="input" id="ports-filter">
               <option value="listen">仅监听端口</option>
               <option value="all">全部连接</option>
@@ -154,7 +157,7 @@
           <div class="panel-tools">
             <input class="input" id="login-search" type="search" placeholder="搜索名称 / 程序" autocomplete="off">
             <label class="tag mute"><input type="checkbox" id="login-system"> 显示系统项</label>
-            <button class="btn" id="login-analyze" title="让 AI 评估每个启动项的风险">AI 风险分析</button>
+            <button class="btn" id="login-analyze" title="让 AI 评估每个启动项的风险">AI 分析</button>
             <button class="btn" id="login-refresh">刷新</button>
           </div>
         </div>
@@ -170,6 +173,7 @@
           <h2>已安装的应用</h2>
           <div class="panel-tools">
             <input class="input" id="apps-search" type="search" placeholder="搜索名称 / Bundle ID" autocomplete="off">
+            <button class="btn" id="apps-ai">AI 分析</button>
             <button class="btn" id="apps-rescan">重新扫描</button>
           </div>
         </div>
@@ -197,6 +201,7 @@
         <div class="panel-head">
           <h2>可清理项</h2>
           <div class="panel-tools">
+            <button class="btn" id="clean-ai" title="让 AI 判断哪些可以放心删">AI 分析</button>
             <button class="btn" id="clean-scan">扫描</button>
             <button class="btn primary" id="clean-execute" disabled>移到废纸篓</button>
           </div>
@@ -248,6 +253,7 @@
           <h2>环境变量</h2>
           <div class="panel-tools">
             <input class="input" id="env-search" type="search" placeholder="搜索名称或值" autocomplete="off">
+            <button class="btn" id="env-ai" title="让 AI 检查这些环境变量">AI 分析</button>
             <button class="btn" id="env-add">新增</button>
             <button class="btn" id="env-import">导入</button>
             <button class="btn" id="env-export">导出</button>
@@ -384,6 +390,7 @@
 <script src="/static/ui.js"></script>
 <script src="/static/views.js"></script>
 <script src="/static/settings.js"></script>
+<script src="/static/ai.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

@@ -179,6 +179,26 @@ a.ghost-btn { text-decoration: none; display: inline-block; }
 /* The buttons of a program branch: turn it off, or remove it. */
 .group-actions { display: flex; gap: 6px; justify-content: flex-end; }
 
+/* ------------------------------------------------------------------- ai */
+/* The two modes of an analysis, in the dialog that asks for them. */
+.ai-modes { display: grid; gap: 8px; margin-top: 12px; }
+.ai-modes .btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 10px 12px; text-align: left; line-height: 1.4;
+}
+.ai-modes .btn b { font-size: 13.5px; }
+.ai-modes .btn span { font-size: 11.5px; font-weight: 400; }
+
+/* The verdict of the AI about one item. */
+.ai-hint {
+  margin-top: 10px; padding: 9px 12px;
+  border-radius: 10px;
+  background: rgb(var(--text) / .04);
+  font-size: 12.5px; line-height: 1.55;
+}
+.ai-hint .tag { margin-right: 6px; }
+.ai-hint > div { margin-top: 3px; }
+
 /* ------------------------------------------------------------- settings */
 .settings-grid {
   display: grid;

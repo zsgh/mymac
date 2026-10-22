@@ -81,6 +81,7 @@ var tags = []Tag{
 	{Name: "clean", Description: "系统清理与废纸篓"},
 	{Name: "docs", Description: "接口描述本身"},
 	{Name: "settings", Description: "大模型与接口文档的设置"},
+	{Name: "ai", Description: "AI 分析"},
 }
 
 // build turns the endpoint table into an OpenAPI document.

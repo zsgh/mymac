@@ -530,42 +530,34 @@ var endpoints = []Endpoint{
 			{Status: "200", Description: "处理结果", Type: LoginItemGroupRemoveResponse{}},
 		},
 	},
-	{
-		Method: "GET", Path: "/api/loginitems/analyze", Tag: "loginitems",
-		Summary:     "风险分析状态",
-		Description: "返回 AI 风险分析的状态：是不是在跑、已经评了多少个、失败的原因。",
-		OperationID: "getLoginItemAnalysis",
-		Responses: []ResponseSpec{
-			{Status: "200", Description: "分析状态", Type: LoginItemAnalyzeResponse{}},
-		},
-	},
-	{
-		Method: "POST", Path: "/api/loginitems/analyze", Tag: "loginitems",
-		Summary:     "AI 风险分析",
-		Description: "让 AI 评估每个启动项的风险。分析在后台跑，结果通过列表接口返回。",
-		OperationID: "analyzeLoginItems",
-		Responses: []ResponseSpec{
-			{Status: "200", Description: "分析状态", Type: LoginItemAnalyzeResponse{}},
-		},
-	},
 
 	// ------------------------------------------------------------ procs
+
+	// ---------------------------------------------------------------- ai
 	{
-		Method: "GET", Path: "/api/procs/analyze", Tag: "procs",
-		Summary:     "进程分析状态",
-		Description: "返回 AI 进程说明的状态：是不是在跑、已经说了多少个、失败的原因。",
-		OperationID: "getProcAnalysis",
+		Method: "POST", Path: "/api/ai/analyze", Tag: "ai",
+		Summary:     "AI 分析",
+		Description: "让 AI 评估这一页的内容。分析在后台跑，结果通过各自的列表接口返回。",
+		OperationID: "analyzeWithAI",
+		Request: &RequestSpec{
+			Description: "分析的名字与模式",
+			Type:        AIAnalyzeRequest{},
+			Required:    true,
+		},
 		Responses: []ResponseSpec{
-			{Status: "200", Description: "分析状态", Type: ProcAnalyzeResponse{}},
+			{Status: "200", Description: "分析状态", Type: AIAnalysisState{}},
 		},
 	},
 	{
-		Method: "POST", Path: "/api/procs/analyze", Tag: "procs",
-		Summary:     "AI 解释进程",
-		Description: "让 AI 说明正在跑的进程是干什么的。分析在后台跑，结果通过列表接口返回。",
-		OperationID: "analyzeProcesses",
+		Method: "GET", Path: "/api/ai/status", Tag: "ai",
+		Summary:     "AI 分析状态",
+		Description: "返回各个分析的状态：是不是在跑、已经评了多少个、失败的原因。",
+		OperationID: "getAIStatus",
+		Params: []Param{
+			{Name: "analysis", In: "query", Description: "分析的名字，留空返回全部", Type: "", Example: "apps"},
+		},
 		Responses: []ResponseSpec{
-			{Status: "200", Description: "分析状态", Type: ProcAnalyzeResponse{}},
+			{Status: "200", Description: "分析状态", Type: AIStatusResponse{}},
 		},
 	},
 

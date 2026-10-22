@@ -18,6 +18,12 @@ import (
 // handleProcs returns the cached process list.
 func (s *Server) handleProcs(w http.ResponseWriter, r *http.Request) {
 	snap := s.procs.Snapshot(r.Context())
+	// The verdict of the AI, if there was an analysis.
+	for i := range snap.Processes {
+		if v := s.verdictOf(AnalysisProcs, snap.Processes[i].Name); v != nil {
+			snap.Processes[i].AI = v
+		}
+	}
 	writeJSON(w, http.StatusOK, api.ProcListResponse{
 		Processes:   snap.Processes,
 		Count:       snap.Count,
@@ -187,37 +193,6 @@ func (s *Server) handleProcFiles(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, api.ProcFilesResponse{Files: files})
 }
 
-// handleProcAnalysisStatus returns the state of the process explanation.
-func (s *Server) handleProcAnalysisStatus(w http.ResponseWriter, r *http.Request) {
-	st := s.procs.Status()
-	writeJSON(w, http.StatusOK, api.ProcAnalyzeResponse{
-		Available: st.Available,
-		Analyzing: st.Analyzing,
-		Count:     st.Count,
-		At:        st.At,
-		Error:     st.Error,
-	})
-}
-
-// handleProcAnalyze starts an explanation of the running processes.
-//
-// The model is asked what the programs are; the answer shows up in the
-// process list once it is in.
-func (s *Server) handleProcAnalyze(w http.ResponseWriter, r *http.Request) {
-	if err := s.procs.Analyze(r.Context()); err != nil {
-		writeError(w, http.StatusBadRequest, err)
-		return
-	}
-	st := s.procs.Status()
-	writeJSON(w, http.StatusOK, api.ProcAnalyzeResponse{
-		Available: st.Available,
-		Analyzing: st.Analyzing,
-		Count:     st.Count,
-		At:        st.At,
-		Error:     st.Error,
-	})
-}
-
 // handleOverview returns the system summary.
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 	o := s.sysinfo.Collect(r.Context())
@@ -229,6 +204,10 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 	}
 	if snap := s.ports.Peek(); snap != nil {
 		o.PortCount = snap.Stats.Listen
+	}
+	// The verdict of the AI about the machine, if there was an analysis.
+	if v := s.verdictOf(AnalysisDash, "overview"); v != nil {
+		o.AI = v
 	}
 	writeJSON(w, http.StatusOK, o)
 }

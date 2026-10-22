@@ -28,6 +28,12 @@ func (s *Server) handlePortsSnapshot(w http.ResponseWriter, r *http.Request) {
 	}
 	out := *snap
 	out.Processes = visible
+	// The verdict of the AI, if there was an analysis.
+	for i := range out.Processes {
+		if v := s.verdictOf(AnalysisPorts, strconv.Itoa(int(out.Processes[i].PID))); v != nil {
+			out.Processes[i].AI = v
+		}
+	}
 	writeJSON(w, http.StatusOK, &out)
 }
 

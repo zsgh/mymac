@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"mymac/internal/ai"
 	"mymac/internal/config"
 	"mymac/internal/fsutil"
 )
@@ -37,6 +38,8 @@ type Item struct {
 	Readable bool `json:"readable"`
 	// ReadOnly items are only reported, never deleted.
 	ReadOnly bool `json:"readOnly"`
+	// AI is what the model said about the item, if it was asked.
+	AI *ai.Verdict `json:"ai,omitempty"`
 }
 
 // Summary is the overview of a scan.

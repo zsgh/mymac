@@ -12,6 +12,7 @@ import (
 	"github.com/shirou/gopsutil/v4/net"
 	"github.com/shirou/gopsutil/v4/process"
 
+	"mymac/internal/ai"
 	"mymac/internal/errs"
 	"mymac/internal/rules"
 )
@@ -36,6 +37,8 @@ type Process struct {
 	ListenCount  int            `json:"listenCount"`
 	Decision     rules.Decision `json:"decision"`
 	PortDecision rules.Decision `json:"portDecision"`
+	// AI is what the model said about the process, if it was asked.
+	AI *ai.Verdict `json:"ai,omitempty"`
 	// PermissionDenied marks the processes whose details could not be read.
 	PermissionDenied bool `json:"permissionDenied,omitempty"`
 	// Self marks the mymac process itself. It must not be stopped, killed

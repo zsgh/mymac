@@ -32,6 +32,10 @@ func (s *Server) handleApps(w http.ResponseWriter, r *http.Request) {
 		if !a.SizeKnown {
 			pending++
 		}
+		// The verdict of the AI, if there was an analysis.
+		if v := s.verdictOf(AnalysisApps, a.BundleID); v != nil {
+			a.AI = v
+		}
 		items = append(items, a)
 	}
 	// A rescan also triggers a fresh measurement, so the sizes show up
@@ -264,7 +268,14 @@ func (s *Server) handleAppIcon(w http.ResponseWriter, r *http.Request) {
 // handleCleanScan returns the cleanable items.
 func (s *Server) handleCleanScan(w http.ResponseWriter, r *http.Request) {
 	rescan := r.URL.Query().Get("rescan") == "1"
-	writeJSON(w, http.StatusOK, s.cleaner.Scan(r.Context(), rescan))
+	res := s.cleaner.Scan(r.Context(), rescan)
+	// The verdict of the AI, if there was an analysis.
+	for i := range res.Items {
+		if v := s.verdictOf(AnalysisClean, res.Items[i].Path); v != nil {
+			res.Items[i].AI = v
+		}
+	}
+	writeJSON(w, http.StatusOK, res)
 }
 
 // handleCleanExecute moves the selected items to the Trash.

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"mymac/internal/ai"
 	"mymac/internal/audit"
 	"mymac/internal/config"
 	"mymac/internal/errs"
@@ -86,12 +87,14 @@ func (m *Manager) Store() (*Store, error) { return Load(m.storePath) }
 // ManagedVar is a managed variable enriched with the state of each layer.
 type ManagedVar struct {
 	Var
-	ShellApplied bool       `json:"shellApplied"`
-	LaunchdValue string     `json:"launchdValue"`
-	LaunchdSet   bool       `json:"launchdSet"`
-	LaunchdOK    bool       `json:"launchdOk"`
-	Conflicts    []Conflict `json:"conflicts"`
-	NeedsRestart []string   `json:"needsRestart,omitempty"`
+	// AI is what the model said about the variable, if it was asked.
+	AI           *ai.Verdict `json:"ai,omitempty"`
+	ShellApplied bool        `json:"shellApplied"`
+	LaunchdValue string      `json:"launchdValue"`
+	LaunchdSet   bool        `json:"launchdSet"`
+	LaunchdOK    bool        `json:"launchdOk"`
+	Conflicts    []Conflict  `json:"conflicts"`
+	NeedsRestart []string    `json:"needsRestart,omitempty"`
 }
 
 // Conflict describes another definition of the same variable.

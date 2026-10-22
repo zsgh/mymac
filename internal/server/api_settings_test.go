@@ -197,15 +197,16 @@ func TestAnalyzeWithoutAModel(t *testing.T) {
 	srv := newSettingsServer(t)
 	ts := newTestServerFor(t, srv)
 
-	for _, path := range []string{"/api/loginitems/analyze", "/api/procs/analyze"} {
-		res := doJSON(t, ts, http.MethodPost, path, "")
+	for _, name := range AnalysisNames() {
+		res := doJSON(t, ts, http.MethodPost, "/api/ai/analyze",
+			`{"analysis":"`+name+`","mode":"full"}`)
 		body, _ := io.ReadAll(res.Body)
 		res.Body.Close()
 		if res.StatusCode != http.StatusBadRequest {
-			t.Errorf("%s answered %d, want 400", path, res.StatusCode)
+			t.Errorf("%s answered %d, want 400", name, res.StatusCode)
 		}
 		if !strings.Contains(string(body), "大模型") {
-			t.Errorf("%s said %s", path, strings.TrimSpace(string(body)))
+			t.Errorf("%s said %s", name, strings.TrimSpace(string(body)))
 		}
 	}
 }

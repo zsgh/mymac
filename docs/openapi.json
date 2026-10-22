@@ -56,9 +56,99 @@
     {
       "name": "settings",
       "description": "大模型与接口文档的设置"
+    },
+    {
+      "name": "ai",
+      "description": "AI 分析"
     }
   ],
   "paths": {
+    "/api/ai/analyze": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "AI 分析",
+        "description": "让 AI 评估这一页的内容。分析在后台跑，结果通过各自的列表接口返回。",
+        "operationId": "analyzeWithAI",
+        "requestBody": {
+          "description": "分析的名字与模式",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/api.AIAnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "分析状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.AIAnalysisState"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "请求失败时的通用错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/status": {
+      "get": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "AI 分析状态",
+        "description": "返回各个分析的状态：是不是在跑、已经评了多少个、失败的原因。",
+        "operationId": "getAIStatus",
+        "parameters": [
+          {
+            "name": "analysis",
+            "in": "query",
+            "description": "分析的名字，留空返回全部",
+            "schema": {
+              "type": "string"
+            },
+            "example": "apps"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "分析状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.AIStatusResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "请求失败时的通用错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/apps": {
       "get": {
         "tags": [
@@ -1364,68 +1454,6 @@
         }
       }
     },
-    "/api/loginitems/analyze": {
-      "get": {
-        "tags": [
-          "loginitems"
-        ],
-        "summary": "风险分析状态",
-        "description": "返回 AI 风险分析的状态：是不是在跑、已经评了多少个、失败的原因。",
-        "operationId": "getLoginItemAnalysis",
-        "responses": {
-          "200": {
-            "description": "分析状态",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/api.LoginItemAnalyzeResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "请求失败时的通用错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/api.ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "loginitems"
-        ],
-        "summary": "AI 风险分析",
-        "description": "让 AI 评估每个启动项的风险。分析在后台跑，结果通过列表接口返回。",
-        "operationId": "analyzeLoginItems",
-        "responses": {
-          "200": {
-            "description": "分析状态",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/api.LoginItemAnalyzeResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "请求失败时的通用错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/api.ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/loginitems/group/remove": {
       "post": {
         "tags": [
@@ -2024,68 +2052,6 @@
         }
       }
     },
-    "/api/procs/analyze": {
-      "get": {
-        "tags": [
-          "procs"
-        ],
-        "summary": "进程分析状态",
-        "description": "返回 AI 进程说明的状态：是不是在跑、已经说了多少个、失败的原因。",
-        "operationId": "getProcAnalysis",
-        "responses": {
-          "200": {
-            "description": "分析状态",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/api.ProcAnalyzeResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "请求失败时的通用错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/api.ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "procs"
-        ],
-        "summary": "AI 解释进程",
-        "description": "让 AI 说明正在跑的进程是干什么的。分析在后台跑，结果通过列表接口返回。",
-        "operationId": "analyzeProcesses",
-        "responses": {
-          "200": {
-            "description": "分析状态",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/api.ProcAnalyzeResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "请求失败时的通用错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/api.ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/procs/stream": {
       "get": {
         "tags": [
@@ -2606,6 +2572,89 @@
   },
   "components": {
     "schemas": {
+      "ai.Verdict": {
+        "type": "object",
+        "properties": {
+          "advice": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "level",
+          "label",
+          "reason"
+        ]
+      },
+      "api.AIAnalysisState": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "running": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "running",
+          "count"
+        ]
+      },
+      "api.AIAnalyzeRequest": {
+        "type": "object",
+        "properties": {
+          "analysis": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "analysis"
+        ]
+      },
+      "api.AIStatusResponse": {
+        "type": "object",
+        "properties": {
+          "analyses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/api.AIAnalysisState"
+            }
+          }
+        },
+        "required": [
+          "analyses"
+        ]
+      },
       "api.AlertRulesRequest": {
         "type": "object",
         "properties": {
@@ -3090,32 +3139,6 @@
           "hasKey"
         ]
       },
-      "api.LoginItemAnalyzeResponse": {
-        "type": "object",
-        "properties": {
-          "analyzing": {
-            "type": "boolean"
-          },
-          "at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "available": {
-            "type": "boolean"
-          },
-          "count": {
-            "type": "integer"
-          },
-          "error": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "available",
-          "analyzing",
-          "count"
-        ]
-      },
       "api.LoginItemGroupRemoveRequest": {
         "type": "object",
         "properties": {
@@ -3372,32 +3395,6 @@
           "remove"
         ]
       },
-      "api.ProcAnalyzeResponse": {
-        "type": "object",
-        "properties": {
-          "analyzing": {
-            "type": "boolean"
-          },
-          "at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "available": {
-            "type": "boolean"
-          },
-          "count": {
-            "type": "integer"
-          },
-          "error": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "available",
-          "analyzing",
-          "count"
-        ]
-      },
       "api.ProcDetailResponse": {
         "type": "object",
         "properties": {
@@ -3616,6 +3613,14 @@
       "apps.App": {
         "type": "object",
         "properties": {
+          "ai": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ai.Verdict"
+              }
+            ],
+            "nullable": true
+          },
           "bundleId": {
             "type": "string"
           },
@@ -3835,6 +3840,14 @@
       "cleaner.Item": {
         "type": "object",
         "properties": {
+          "ai": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ai.Verdict"
+              }
+            ],
+            "nullable": true
+          },
           "category": {
             "type": "string"
           },
@@ -4119,6 +4132,14 @@
       "envs.ManagedVar": {
         "type": "object",
         "properties": {
+          "ai": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ai.Verdict"
+              }
+            ],
+            "nullable": true
+          },
           "conflicts": {
             "type": "array",
             "items": {
@@ -4393,6 +4414,14 @@
       "loginitems.Item": {
         "type": "object",
         "properties": {
+          "ai": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ai.Verdict"
+              }
+            ],
+            "nullable": true
+          },
           "args": {
             "type": "array",
             "items": {
@@ -4449,12 +4478,6 @@
           },
           "removable": {
             "type": "boolean"
-          },
-          "risk": {
-            "type": "string"
-          },
-          "riskReason": {
-            "type": "string"
           },
           "source": {
             "type": "string"
@@ -4638,6 +4661,14 @@
       "ports.Process": {
         "type": "object",
         "properties": {
+          "ai": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ai.Verdict"
+              }
+            ],
+            "nullable": true
+          },
           "cmdline": {
             "type": "array",
             "items": {
@@ -4872,6 +4903,14 @@
       "procs.Process": {
         "type": "object",
         "properties": {
+          "ai": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ai.Verdict"
+              }
+            ],
+            "nullable": true
+          },
           "appId": {
             "type": "string"
           },
@@ -4925,15 +4964,6 @@
           },
           "netOut": {
             "type": "integer"
-          },
-          "note": {
-            "type": "string"
-          },
-          "notePurpose": {
-            "type": "string"
-          },
-          "noteRisk": {
-            "type": "string"
           },
           "path": {
             "type": "string"
@@ -5008,6 +5038,14 @@
       "procs.ProcessDetail": {
         "type": "object",
         "properties": {
+          "ai": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ai.Verdict"
+              }
+            ],
+            "nullable": true
+          },
           "appId": {
             "type": "string"
           },
@@ -5073,15 +5111,6 @@
           },
           "netOut": {
             "type": "integer"
-          },
-          "note": {
-            "type": "string"
-          },
-          "notePurpose": {
-            "type": "string"
-          },
-          "noteRisk": {
-            "type": "string"
           },
           "openFiles": {
             "type": "array",
@@ -5324,6 +5353,14 @@
       "sysinfo.Overview": {
         "type": "object",
         "properties": {
+          "ai": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ai.Verdict"
+              }
+            ],
+            "nullable": true
+          },
           "battery": {
             "type": "integer",
             "nullable": true

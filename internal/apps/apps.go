@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"mymac/internal/ai"
 	"mymac/internal/config"
 	"mymac/internal/errs"
 	"mymac/internal/fsutil"
@@ -36,6 +37,8 @@ type App struct {
 	// IsApple marks the applications that come from Apple. They are still
 	// ordinary applications the user may remove.
 	IsApple bool `json:"isApple"`
+	// AI is what the model said about the application, if it was asked.
+	AI *ai.Verdict `json:"ai,omitempty"`
 	// IsSystem marks the applications that are part of macOS itself. Those
 	// are the only ones that must not be removed.
 	IsSystem   bool   `json:"isSystem"`

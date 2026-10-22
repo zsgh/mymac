@@ -5,6 +5,7 @@ package sysinfo
 
 import (
 	"context"
+	"mymac/internal/ai"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -34,6 +35,9 @@ type Overview struct {
 	LoadAvg     string  `json:"loadAvg"`
 	ProcCount   int     `json:"procCount"`
 	PortCount   int     `json:"portCount"`
+	// AI is what the model said about the state of the machine, if it
+	// was asked.
+	AI *ai.Verdict `json:"ai,omitempty"`
 }
 
 // Collector gathers the overview.

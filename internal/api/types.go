@@ -303,6 +303,47 @@ type AppLastUsedResponse struct {
 	Path string `json:"path,omitempty"`
 }
 
+// ------------------------------------------------------------------- ai
+
+// The modes of an analysis.
+const (
+	// AIModeFull asks the model about everything again.
+	AIModeFull = "full"
+	// AIModeCache only asks about the items that have no verdict yet.
+	AIModeCache = "cache"
+)
+
+// AIAnalyzeRequest starts an analysis.
+type AIAnalyzeRequest struct {
+	// Analysis is the name of the analysis: "dash", "apps", "clean",
+	// "procs", "ports", "loginitems" or "env".
+	Analysis string `json:"analysis"`
+	// Mode is "full" (ask about everything) or "cache" (only about the
+	// items that have no verdict yet).
+	Mode string `json:"mode,omitempty"`
+}
+
+// AIAnalysisState describes one analysis.
+type AIAnalysisState struct {
+	// Name is the name of the analysis.
+	Name string `json:"name"`
+	// Running is true while the analysis is in flight.
+	Running bool `json:"running"`
+	// Count is the number of items that have a verdict.
+	Count int `json:"count"`
+	// At is when the analysis finished.
+	At time.Time `json:"at,omitempty"`
+	// Model is the model that answered.
+	Model string `json:"model,omitempty"`
+	// Error explains why the last run failed, if it did.
+	Error string `json:"error,omitempty"`
+}
+
+// AIStatusResponse holds the state of the analyses.
+type AIStatusResponse struct {
+	Analyses []AIAnalysisState `json:"analyses"`
+}
+
 // ---------------------------------------------------------------- settings
 
 // LLMSettings describes the model the AI features talk to.
