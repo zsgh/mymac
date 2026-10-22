@@ -187,6 +187,18 @@ func (s *Server) handleProcFiles(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, api.ProcFilesResponse{Files: files})
 }
 
+// handleProcAnalysisStatus returns the state of the process explanation.
+func (s *Server) handleProcAnalysisStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.procs.Status()
+	writeJSON(w, http.StatusOK, api.ProcAnalyzeResponse{
+		Available: st.Available,
+		Analyzing: st.Analyzing,
+		Count:     st.Count,
+		At:        st.At,
+		Error:     st.Error,
+	})
+}
+
 // handleProcAnalyze starts an explanation of the running processes.
 //
 // The model is asked what the programs are; the answer shows up in the

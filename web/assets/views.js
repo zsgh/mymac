@@ -418,24 +418,24 @@ async function initLogin() {
 
 // analyzeLoginItems asks the AI to rate the startup items.
 //
-// The analysis takes a while, so it runs in the background: the button waits
-// for the first verdict and the table fills in as they arrive.
+// The analysis takes a while — a thinking model needs a couple of minutes for
+// a list this long — so it runs in the background. The button waits and
+// reports what happened, including the failures.
 async function analyzeLoginItems() {
+  if (!await aiReady()) return;
   const btn = $('#login-analyze');
   btn.disabled = true;
   btn.textContent = '分析中…';
   try {
     await api('/api/loginitems/analyze', { method: 'POST' });
     toast('AI 正在评估，稍等一下', 'ok');
-    // The verdicts show up in the list; keep asking until they are there.
-    for (let i = 0; i < 90; i++) {
-      await new Promise(r => setTimeout(r, 2000));
-      const d = await api('/api/loginitems');
-      if (d.items.some(it => it.risk)) {
-        loginState.data = d;
-        renderLogin();
-        break;
-      }
+    const done = await waitForAnalysis('/api/loginitems/analyze', btn);
+    if (done === 'error') {
+      toast('AI 分析失败，详情见设置页', 'err');
+    } else if (done === 'timeout') {
+      toast('AI 分析还没结束，可以再等等', 'err');
+    } else {
+      toast('AI 评估完成', 'ok');
     }
   } catch (e) {
     toast(e.message, 'err');
@@ -443,6 +443,30 @@ async function analyzeLoginItems() {
   btn.disabled = false;
   btn.textContent = 'AI 风险分析';
   loadLogin();
+}
+
+// waitForAnalysis waits until the analysis is done.
+//
+// The status endpoint says whether the analysis is still running and why it
+// failed, so the interface never has to guess.
+async function waitForAnalysis(statusPath, btn) {
+  const started = Date.now();
+  for (let i = 0; i < 300; i++) {
+    await new Promise(r => setTimeout(r, 2000));
+    const st = await api(statusPath);
+    if (st.error) {
+      console.error('分析失败:', st.error);
+      toast(st.error, 'err');
+      return 'error';
+    }
+    if (!st.analyzing) {
+      // The analysis is over: either it worked or nothing came back.
+      return st.count > 0 ? 'done' : 'error';
+    }
+    const sec = Math.round((Date.now() - started) / 1000);
+    if (btn) btn.textContent = `分析中… ${sec}s`;
+  }
+  return 'timeout';
 }
 
 async function loadLogin() {

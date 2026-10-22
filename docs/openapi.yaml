@@ -2773,6 +2773,25 @@
       "tags":
         - "loginitems"
   "/api/loginitems/analyze":
+    "get":
+      "description": "返回 AI 风险分析的状态：是不是在跑、已经评了多少个、失败的原因。"
+      "operationId": "getLoginItemAnalysis"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.LoginItemAnalyzeResponse"
+          "description": "分析状态"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "风险分析状态"
+      "tags":
+        - "loginitems"
     "post":
       "description": "让 AI 评估每个启动项的风险。分析在后台跑，结果通过列表接口返回。"
       "operationId": "analyzeLoginItems"
@@ -3142,6 +3161,25 @@
       "tags":
         - "procs"
   "/api/procs/analyze":
+    "get":
+      "description": "返回 AI 进程说明的状态：是不是在跑、已经说了多少个、失败的原因。"
+      "operationId": "getProcAnalysis"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ProcAnalyzeResponse"
+          "description": "分析状态"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "进程分析状态"
+      "tags":
+        - "procs"
     "post":
       "description": "让 AI 说明正在跑的进程是干什么的。分析在后台跑，结果通过列表接口返回。"
       "operationId": "analyzeProcesses"

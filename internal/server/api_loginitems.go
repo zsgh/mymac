@@ -68,6 +68,21 @@ func (s *Server) handleLoginItemRemove(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, api.OKResponse{OK: true})
 }
 
+// handleLoginItemAnalysisStatus returns the state of the risk analysis.
+//
+// The interface polls this while the analysis runs, so it has to be able
+// to say that something went wrong.
+func (s *Server) handleLoginItemAnalysisStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.loginItems.Status()
+	writeJSON(w, http.StatusOK, api.LoginItemAnalyzeResponse{
+		Available: st.Available,
+		Analyzing: st.Analyzing,
+		Count:     st.Count,
+		At:        st.At,
+		Error:     st.Error,
+	})
+}
+
 // handleLoginItemAnalyze starts a risk analysis of the startup items.
 //
 // The analysis asks an AI, which takes a while, so it runs in the background

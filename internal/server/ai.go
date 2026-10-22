@@ -25,7 +25,9 @@ func aiProviderFor(store *settings.Store) ai.Provider {
 			BaseURL: cur.LLM.BaseURL,
 			APIKey:  cur.LLM.APIKey,
 			Model:   cur.LLM.Model,
-			Timeout: 3 * time.Minute,
+			// The analysis runs in the background and a long list
+			// takes a while on a thinking model.
+			Timeout: 10 * time.Minute,
 		})
 	}
 }

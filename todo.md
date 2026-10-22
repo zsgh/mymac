@@ -612,6 +612,33 @@ macOS 上"环境变量"分三层，必须分开处理，否则"立即生效"是�
 - [x] 自用未签名的运行说明（`xattr -d com.apple.quarantine`）
 - [x] README：权限、安全模型、环境变量生效范围说明、已知限制
 
+### 步骤 12：配好模型了还是说「没配置」
+- [x] 现象：填好大模型、保存，点「AI 分析」还是说没配置
+- [x] 根因 1（**进程管理**）：`server.New()` 里 `opts.Procs.SetAI(aiProviderFor(opts.Settings))`
+      写在**创建 settings 之前**——provider 绑了一个还不存在的 store，
+      于是永远拿不到客户端。启动项那条路是好的（它写在对的位置），
+      所以「启动程序」能分析、「进程管理」说没配置
+- [x] 根因 2（**接口地址**）：用户填的是完整地址
+      `https://openrouter.ai/api/v1/chat/completions`，而客户端又拼了一次
+      `/chat/completions` → 变成 `.../chat/completions/chat/completions`。
+      现在两种填法都认：带路径就用带路径的，不带就补上
+- [x] 根因 3（**超时**）：客户端超时 3 分钟，而这个模型是**带思考的**，
+      45 个启动项要跑 108 秒，进程列表更久——3 分钟不够，
+      界面还在 180 秒后悄悄放弃了，用户只看到「转圈」
+  - 超时放宽到 10 分钟（分析在后台跑，不占着界面）
+  - 进程说明只问**最忙的 40 组**进程：机器上 600 多个进程有几百个名字，
+    全问一遍模型要跑到天荒地老，而用户真正好奇的就是那几个扎堆的
+  - 加了**状态接口** `GET /api/procs/analyze` 和 `GET /api/loginitems/analyze`：
+    界面轮询它，能看到「在跑 / 跑完了 / 失败为什么」，
+    按钮上还会显示已经等了多久，不再悄悄放弃
+- [x] 验收（本机真跑，用配置好的模型）：
+  - 启动项 44 项 ≈ 90 秒，结论合理——
+    `~/.workbuddy` 里的 node、`~/Library/Application Support` 里的 GoogleUpdater
+    都被判成高风险
+  - 进程 40 组 ≈ 90 秒，连 chrome-devtools-mcp 启动的 Chrome 都认出来了
+- [x] 回归测试：`TestTheModelTakesEffectWithoutARestart`（改设置立刻生效，不用重启）、
+  `TestTheWholeEndpointIsAccepted`（完整地址不会被拼两次）
+
 ---
 
 ## 给 AI 的开发约束

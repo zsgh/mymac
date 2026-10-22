@@ -517,6 +517,15 @@ var endpoints = []Endpoint{
 		},
 	},
 	{
+		Method: "GET", Path: "/api/loginitems/analyze", Tag: "loginitems",
+		Summary:     "风险分析状态",
+		Description: "返回 AI 风险分析的状态：是不是在跑、已经评了多少个、失败的原因。",
+		OperationID: "getLoginItemAnalysis",
+		Responses: []ResponseSpec{
+			{Status: "200", Description: "分析状态", Type: LoginItemAnalyzeResponse{}},
+		},
+	},
+	{
 		Method: "POST", Path: "/api/loginitems/analyze", Tag: "loginitems",
 		Summary:     "AI 风险分析",
 		Description: "让 AI 评估每个启动项的风险。分析在后台跑，结果通过列表接口返回。",
@@ -527,6 +536,15 @@ var endpoints = []Endpoint{
 	},
 
 	// ------------------------------------------------------------ procs
+	{
+		Method: "GET", Path: "/api/procs/analyze", Tag: "procs",
+		Summary:     "进程分析状态",
+		Description: "返回 AI 进程说明的状态：是不是在跑、已经说了多少个、失败的原因。",
+		OperationID: "getProcAnalysis",
+		Responses: []ResponseSpec{
+			{Status: "200", Description: "分析状态", Type: ProcAnalyzeResponse{}},
+		},
+	},
 	{
 		Method: "POST", Path: "/api/procs/analyze", Tag: "procs",
 		Summary:     "AI 解释进程",

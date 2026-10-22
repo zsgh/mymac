@@ -1180,14 +1180,13 @@ async function analyzeProcs() {
   try {
     await api('/api/procs/analyze', { method: 'POST' });
     toast('AI 正在看这些进程，稍等一下', 'ok');
-    for (let i = 0; i < 90; i++) {
-      await new Promise(r => setTimeout(r, 2000));
-      const d = await api('/api/procs');
-      if ((d.processes || []).some(p => p.note)) {
-        procState.rows = d.processes || [];
-        renderProcs();
-        break;
-      }
+    const done = await waitForAnalysis('/api/procs/analyze', btn);
+    if (done === 'error') {
+      toast('AI 分析失败', 'err');
+    } else if (done === 'timeout') {
+      toast('AI 分析还没结束，可以再等等', 'err');
+    } else {
+      toast('AI 说明完成', 'ok');
     }
   } catch (e) {
     toast(e.message, 'err');

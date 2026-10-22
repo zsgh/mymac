@@ -71,6 +71,39 @@ func newSettingsServer(t *testing.T) *Server {
 	return srv
 }
 
+// TestTheModelTakesEffectWithoutARestart checks that a change of the
+// settings is picked up right away.
+//
+// The user configures the model in the interface and expects it to work
+// without restarting mymac.
+func TestTheModelTakesEffectWithoutARestart(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	store := settings.NewStore()
+	provider := aiProviderFor(store)
+
+	if provider() != nil {
+		t.Error("without settings there must be no client")
+	}
+	if _, err := store.Update(func(v *settings.Settings) {
+		v.LLM = settings.LLM{BaseURL: "https://api.example.com/v1", APIKey: "sk-1", Model: "m1"}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	client := provider()
+	if client == nil || !client.Configured() {
+		t.Fatal("the client must follow the settings")
+	}
+	// And a change of the model is picked up too.
+	if _, err := store.Update(func(v *settings.Settings) {
+		v.LLM.Model = "m2"
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if provider() == nil {
+		t.Error("the client must still be there")
+	}
+}
+
 // TestSettingsRoundTrip checks that the settings survive a round trip.
 func TestSettingsRoundTrip(t *testing.T) {
 	srv := newSettingsServer(t)

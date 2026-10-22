@@ -57,7 +57,9 @@ type Config struct {
 	APIKey string
 	// Model is the name of the model.
 	Model string
-	// Timeout limits one request.
+	// Timeout limits one request. The analysis of a long list takes a
+	// while on a thinking model, and it runs in the background, so the
+	// limit is generous.
 	Timeout time.Duration
 }
 
@@ -84,7 +86,7 @@ type Provider func() *Client
 // New returns a client for the given configuration.
 func New(cfg Config) *Client {
 	if cfg.Timeout <= 0 {
-		cfg.Timeout = 3 * time.Minute
+		cfg.Timeout = 10 * time.Minute
 	}
 	return &Client{cfg: cfg, http: &http.Client{Timeout: cfg.Timeout}}
 }
@@ -115,6 +117,19 @@ type chatResponse struct {
 	} `json:"error"`
 }
 
+// endpoint returns the URL of the chat completions API.
+//
+// The user may enter the root of the API ("https://api.openai.com/v1") or
+// the whole path ("https://openrouter.ai/api/v1/chat/completions"); both
+// have to work, and neither may end up with the path twice.
+func (c Config) endpoint() string {
+	base := strings.TrimRight(c.BaseURL, "/")
+	if strings.HasSuffix(base, "/chat/completions") {
+		return base
+	}
+	return base + "/chat/completions"
+}
+
 // Ask sends a question and returns the answer.
 func (c *Client) Ask(ctx context.Context, system, question string) (string, error) {
 	if !c.Configured() {
@@ -130,7 +145,7 @@ func (c *Client) Ask(ctx context.Context, system, question string) (string, erro
 	if err != nil {
 		return "", err
 	}
-	url := strings.TrimRight(c.cfg.BaseURL, "/") + "/chat/completions"
+	url := c.cfg.endpoint()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return "", err

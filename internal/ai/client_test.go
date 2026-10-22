@@ -71,6 +71,27 @@ func TestAskWithoutAKey(t *testing.T) {
 	}
 }
 
+// TestTheWholeEndpointIsAccepted checks that a full path works too.
+//
+// The user may paste the whole address of the endpoint, and it must not
+// end up with the path twice.
+func TestTheWholeEndpointIsAccepted(t *testing.T) {
+	var gotPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"ok"}}]}`))
+	}))
+	defer srv.Close()
+
+	c := New(Config{BaseURL: srv.URL + "/v1/chat/completions", Model: "m"})
+	if _, err := c.Ask(context.Background(), "s", "q"); err != nil {
+		t.Fatal(err)
+	}
+	if gotPath != "/v1/chat/completions" {
+		t.Errorf("path = %q", gotPath)
+	}
+}
+
 // TestAskReportsTheError checks that a service that says no is reported.
 func TestAskReportsTheError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

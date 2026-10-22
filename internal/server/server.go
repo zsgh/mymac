@@ -111,6 +111,11 @@ func New(opts Options) (*Server, error) {
 	if opts.Env == nil {
 		opts.Env = envs.NewManager(envs.Options{Audit: opts.Audit})
 	}
+	// The settings come first: the collectors ask them for the model, and
+	// a store that does not exist yet would leave them without one.
+	if opts.Settings == nil {
+		opts.Settings = settings.NewStore()
+	}
 	if opts.Procs == nil {
 		opts.Procs = procs.NewCollector(2 * time.Second)
 	}
@@ -398,9 +403,11 @@ func (s *Server) apiHandlers() map[string]http.HandlerFunc {
 		"POST /api/loginitems/state":       s.handleLoginItemState,
 		"POST /api/loginitems/remove":      s.handleLoginItemRemove,
 		"POST /api/loginitems/group/state": s.handleLoginItemGroupState,
+		"GET /api/loginitems/analyze":      s.handleLoginItemAnalysisStatus,
 		"POST /api/loginitems/analyze":     s.handleLoginItemAnalyze,
 
 		// The explanation of the running processes.
+		"GET /api/procs/analyze":  s.handleProcAnalysisStatus,
 		"POST /api/procs/analyze": s.handleProcAnalyze,
 
 		// The settings.

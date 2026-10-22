@@ -138,8 +138,17 @@ func processSubjects(list []Process) []ai.ProcessSubject {
 		}
 		return out[i].Name < out[j].Name
 	})
+	// A machine with a thousand processes has hundreds of names, and the
+	// model would take forever on all of them. The busy ones are the ones
+	// the user wonders about anyway.
+	if len(out) > maxExplainedPrograms {
+		out = out[:maxExplainedPrograms]
+	}
 	return out
 }
+
+// maxExplainedPrograms is how many groups of processes are explained.
+const maxExplainedPrograms = 40
 
 // contains reports whether a list holds a value.
 func contains(list []string, s string) bool {
