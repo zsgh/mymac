@@ -340,6 +340,42 @@
         - "analyzing"
         - "count"
       "type": "object"
+    "api.LoginItemGroupRemoveRequest":
+      "properties":
+        "group":
+          "type": "string"
+      "required":
+        - "group"
+      "type": "object"
+    "api.LoginItemGroupRemoveResponse":
+      "properties":
+        "failed":
+          "items":
+            "type": "string"
+          "type": "array"
+        "group":
+          "type": "string"
+        "moved":
+          "items":
+            "type": "string"
+          "type": "array"
+        "name":
+          "type": "string"
+        "ok":
+          "type": "boolean"
+        "skipped":
+          "items":
+            "type": "string"
+          "type": "array"
+        "total":
+          "type": "integer"
+      "required":
+        - "ok"
+        - "group"
+        - "name"
+        - "total"
+        - "moved"
+      "type": "object"
     "api.LoginItemGroupStateRequest":
       "properties":
         "enabled":
@@ -2809,6 +2845,33 @@
                 "$ref": "#/components/schemas/api.ErrorResponse"
           "description": "请求失败时的通用错误"
       "summary": "AI 风险分析"
+      "tags":
+        - "loginitems"
+  "/api/loginitems/group/remove":
+    "post":
+      "description": "把同一个程序的所有启动项移入废纸篓。没有自己文件的项（系统代管的服务、旧式登录项）会被跳过。"
+      "operationId": "removeLoginItemGroup"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.LoginItemGroupRemoveRequest"
+        "description": "分组键"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.LoginItemGroupRemoveResponse"
+          "description": "处理结果"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "删除整个程序的启动项"
       "tags":
         - "loginitems"
   "/api/loginitems/group/state":

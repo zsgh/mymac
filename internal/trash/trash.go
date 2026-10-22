@@ -44,7 +44,14 @@ var finderUsable = struct {
 }{}
 
 // usable reports whether the Finder can be driven right now.
+//
+// MYMAC_NO_FINDER turns the Finder off: the fallback moves the file into
+// ~/.Trash, which is still recoverable. The tests use it so that a test run
+// does not make macOS show a permission dialog.
 func usable(ctx context.Context) bool {
+	if os.Getenv("MYMAC_NO_FINDER") != "" {
+		return false
+	}
 	finderUsable.Lock()
 	defer finderUsable.Unlock()
 	if time.Since(finderUsable.checked) < 2*time.Minute {

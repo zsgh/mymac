@@ -20,6 +20,7 @@ import (
 	"mymac/internal/ai"
 	"mymac/internal/config"
 	"mymac/internal/errs"
+	"mymac/internal/perm"
 	"mymac/internal/trash"
 )
 
@@ -784,8 +785,118 @@ func Remove(ctx context.Context, path string) error {
 	if err != nil {
 		return err
 	}
-	if len(res.Failed) > 0 {
-		return errs.New(errs.KindInternal, "%s", res.Failed[0].Reason)
+	if len(res.Failed) == 0 {
+		return nil
+	}
+	// A file in a system directory belongs to root: the Trash is not
+	// reachable without the administrator password.
+	if isSystemPath(clean) {
+		if err := removeElevated(ctx, clean); err == nil {
+			return nil
+		}
+	}
+	return errs.New(errs.KindInternal, "%s", res.Failed[0].Reason)
+}
+
+// isSystemPath reports whether a file belongs to the system.
+func isSystemPath(path string) bool {
+	for _, dir := range []string{"/Library/LaunchAgents", "/Library/LaunchDaemons"} {
+		if strings.HasPrefix(path, dir+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+// removeElevated moves a file that belongs to root into the user's trash.
+//
+// The command runs as root, so it can take the file out of a system
+// directory. The destination is the user's own trash, so the file stays
+// recoverable.
+func removeElevated(ctx context.Context, path string) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return errs.Wrap(err, errs.KindInternal, "无法确定用户目录")
+	}
+	dst := filepath.Join(home, ".Trash", filepath.Base(path))
+	cmd := "mkdir -p " + shellQuote(filepath.Dir(dst)) +
+		" && mv -f " + shellQuote(path) + " " + shellQuote(dst)
+	if _, err := perm.Elevate(ctx, cmd); err != nil {
+		return err
 	}
 	return nil
+}
+
+// shellQuote puts a path into single quotes for the shell.
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// GroupRemoveResult reports what a group removal did.
+type GroupRemoveResult struct {
+	// Key and Name identify the group that was handled.
+	Key  string `json:"key"`
+	Name string `json:"name"`
+	// Total is the number of items in the group.
+	Total int `json:"total"`
+	// Moved are the items that went to the Trash.
+	Moved []string `json:"moved"`
+	// Failed are the items that could not be removed.
+	Failed []string `json:"failed,omitempty"`
+	// Skipped are the items that have no file of their own: the services
+	// the system submits for an app and the old login items come back
+	// with the app, there is nothing to delete.
+	Skipped []string `json:"skipped,omitempty"`
+}
+
+// RemoveGroup deletes every startup item of one program.
+//
+// One app often brings several startup items with it, and the user thinks
+// of the program, not of the individual files.
+func (c *Collector) RemoveGroup(ctx context.Context, key string) (GroupRemoveResult, error) {
+	if strings.TrimSpace(key) == "" {
+		return GroupRemoveResult{}, errs.New(errs.KindInvalid, "分组不能为空")
+	}
+	list := c.Collect(ctx)
+
+	var members []Item
+	res := GroupRemoveResult{Key: key, Moved: []string{}}
+	for _, it := range list.Items {
+		if it.GroupKey != key {
+			continue
+		}
+		members = append(members, it)
+		res.Name = it.GroupName
+	}
+	if len(members) == 0 {
+		return GroupRemoveResult{}, errs.New(errs.KindNotFound, "找不到这个程序的启动项")
+	}
+	res.Total = len(members)
+
+	for _, it := range members {
+		if !it.Removable || it.PlistPath == "" {
+			res.Skipped = append(res.Skipped, it.Label)
+			continue
+		}
+		if err := Remove(ctx, it.PlistPath); err != nil {
+			res.Failed = append(res.Failed, it.Label+": "+errs.As(err).Message)
+			continue
+		}
+		res.Moved = append(res.Moved, it.Label)
+		// The definition is gone; the service that is still running
+		// from it has to go as well.
+		bootout(ctx, it.Label)
+	}
+	return res, nil
+}
+
+// bootout stops a service that has no definition left.
+//
+// A service that is not loaded is not an error: the item was never running.
+func bootout(ctx context.Context, label string) {
+	if strings.TrimSpace(label) == "" {
+		return
+	}
+	cmd := exec.CommandContext(ctx, "/bin/launchctl", "bootout", launchDomain()+"/"+label)
+	_, _ = cmd.CombinedOutput()
 }

@@ -639,6 +639,25 @@ macOS 上"环境变量"分三层，必须分开处理，否则"立即生效"是�
 - [x] 回归测试：`TestTheModelTakesEffectWithoutARestart`（改设置立刻生效，不用重启）、
   `TestTheWholeEndpointIsAccepted`（完整地址不会被拼两次）
 
+### 步骤 13：启动程序加「全部删除」
+- [x] 反馈：「AweSun 4」这种一个程序四个启动项，想整个停掉得点好几次
+- [x] 改法：分支头上加「全部删除 N」——把这个程序的所有启动项一次移进废纸篓
+  - 弹窗列出要删的每一个文件，文件进废纸篓，**可随时恢复**
+  - 删完顺带 `launchctl bootout` 把还在跑的服务停掉（定义都没了，服务不该还跑着）
+  - 没有自己文件的项（系统代管的服务、旧式登录项）**跳过**并单独报出来：
+    它们跟着应用走，删了也会回来
+- [x] 顺带修掉：**系统级的启动项以前根本删不掉**。
+  `/Library/LaunchDaemons` 里的文件属于 root，Finder 搬不动它，
+  `NeedsAdmin` 这个字段一直没用上。现在删不动就**提权**把文件搬进**用户自己的**废纸篓
+  （不是 root 的废纸篓，用户在访达里看得见、也恢复得了），路径带空格的也正确转义
+- [x] 验收：建了两个测试用的 LaunchAgent（同一个程序，分到一组），
+  整组删除 → 两个文件都进了废纸篓、列表里没了、LaunchAgents 目录里也空了；
+  对一个没有自己文件的组（Terminal 的系统服务）→ 报告「跳过 1 项」，什么也没删
+- [x] 回归测试：`TestRemoveGroupMovesEveryFile`、`TestRemoveGroupSkipsTheItemsWithoutAFile`、
+  `TestShellQuote`（带空格的路径不能把提权命令弄坏）
+- [x] 顺带：`MYMAC_NO_FINDER=1` 可以关掉 Finder 那条路，测试用它，
+  免得跑一次测试就弹一次「终端想控制访达」
+
 ---
 
 ## 给 AI 的开发约束

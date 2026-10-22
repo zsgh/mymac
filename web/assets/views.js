@@ -566,7 +566,7 @@ function renderLogin() {
       <td class="muted">${groupSummary(g)}</td>
       <td>${riskBadges(high, medium, g.items.filter(i => i.risk === 'low').length)}</td>
       <td></td>
-      <td>${groupButton(g)}</td>
+      <td class="group-actions">${groupButton(g)}${groupRemoveButton(g)}</td>
     </tr>`;
     if (collapsed) continue;
     for (const i of g.items) {
@@ -594,10 +594,14 @@ function renderLogin() {
     renderLogin();
   }));
 
-  // The button of a program lives in its header row.
+  // The buttons of a program live in its header row.
   $$('#login-table button[data-act="group"]').forEach(b => b.addEventListener('click', async (e) => {
     e.stopPropagation();
     await toggleGroup(b.dataset.group, b.dataset.enable === 'true');
+  }));
+  $$('#login-table button[data-act="group-remove"]').forEach(b => b.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    await removeGroup(b.dataset.group);
   }));
 
   $$('#login-table tbody tr[data-label]').forEach(tr => {
@@ -630,6 +634,44 @@ function renderLogin() {
       }
     }));
   });
+}
+
+// groupRemoveButton renders the button that removes every startup item of
+// one program.
+//
+// The files go to the Trash, so a mistake can be undone.
+function groupRemoveButton(g) {
+  const removable = g.items.filter(i => i.removable && i.plistPath);
+  if (!removable.length) return '';
+  return `<button class="btn tiny danger" data-act="group-remove" data-group="${esc(g.key)}" title="把这个程序的启动项全部移入废纸篓">全部删除 ${removable.length}</button>`;
+}
+
+// removeGroup deletes every startup item of one program.
+async function removeGroup(group) {
+  const d = loginState.data;
+  const items = ((d && d.items) || []).filter(i => i.groupKey === group);
+  const removable = items.filter(i => i.removable && i.plistPath);
+  if (!removable.length) {
+    toast('这个程序没有可以删除的启动项', 'err');
+    return;
+  }
+  const needsAdmin = removable.some(i => (i.source || '').startsWith('/Library/'));
+  const body = `<p>确认删除 <b>${esc(items[0] ? items[0].groupName : '')}</b> 的 ${removable.length} 个启动项？</p>
+    <div class="path-list">${removable.map(i => `<div class="path-item"><span class="sp">${esc(i.plistPath)}</span></div>`).join('')}</div>
+    <p class="muted">文件会移入废纸篓，可随时恢复。${needsAdmin ? '<br>系统级的启动项需要管理员密码。' : ''}</p>`;
+  const ok = await modal({ title: '删除启动项', body, okText: '删除', danger: true });
+  if (!ok) return;
+  try {
+    const r = await api('/api/loginitems/group/remove', { method: 'POST', body: { group } });
+    if (r.failed && r.failed.length) {
+      toast(`删了 ${r.moved.length} 项，失败 ${r.failed.length} 项`, 'err');
+    } else if (r.skipped && r.skipped.length) {
+      toast(`删了 ${r.moved.length} 项，跳过 ${r.skipped.length} 项（没有自己的文件）`, 'ok');
+    } else {
+      toast(`已删除 ${r.moved.length} 项`, 'ok');
+    }
+    loadLogin();
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 // itemState renders the state of one startup item.

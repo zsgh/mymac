@@ -176,6 +176,9 @@ a.ghost-btn { text-decoration: none; display: inline-block; }
   border-top: 1px solid rgb(var(--text) / .12);
 }
 
+/* The buttons of a program branch: turn it off, or remove it. */
+.group-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
 /* ------------------------------------------------------------- settings */
 .settings-grid {
   display: grid;

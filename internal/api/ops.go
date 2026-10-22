@@ -517,6 +517,20 @@ var endpoints = []Endpoint{
 		},
 	},
 	{
+		Method: "POST", Path: "/api/loginitems/group/remove", Tag: "loginitems",
+		Summary:     "删除整个程序的启动项",
+		Description: "把同一个程序的所有启动项移入废纸篓。没有自己文件的项（系统代管的服务、旧式登录项）会被跳过。",
+		OperationID: "removeLoginItemGroup",
+		Request: &RequestSpec{
+			Description: "分组键",
+			Type:        LoginItemGroupRemoveRequest{},
+			Required:    true,
+		},
+		Responses: []ResponseSpec{
+			{Status: "200", Description: "处理结果", Type: LoginItemGroupRemoveResponse{}},
+		},
+	},
+	{
 		Method: "GET", Path: "/api/loginitems/analyze", Tag: "loginitems",
 		Summary:     "风险分析状态",
 		Description: "返回 AI 风险分析的状态：是不是在跑、已经评了多少个、失败的原因。",

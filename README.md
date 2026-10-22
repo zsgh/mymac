@@ -231,6 +231,9 @@ tools/genopenapi/   生成 docs/ 里的接口描述
   `~/Library/LaunchAgents`、`/Library/LaunchAgents`、`/Library/LaunchDaemons`、
   以及 System Events 的旧式登录项。
 - **细分控制还在**：每一行都有自己的「禁用 / 启用」，只想关掉其中一个也行。
+- **整组删除**：分支头上有「全部删除 N」，一次把这个程序的启动项全移进废纸篓（可恢复），
+  删完还顺带把还在跑的服务停掉。系统级的那两个（`/Library` 里的）会弹管理员密码。
+  没有自己文件的项（系统代管的服务、旧式登录项）会跳过——它们跟着应用走，删了也会回来。
 - **禁用 / 启用**通过 `launchctl enable` / `disable` 立即生效：
   **正在运行的进程不会停**，但登录后不再启动。这个标记写在 launchd 的数据库里
   （`/var/db/com.apple.xpc.launchd/disabled.<uid>.plist`），**重启后依然有效**，

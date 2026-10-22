@@ -1426,6 +1426,49 @@
         }
       }
     },
+    "/api/loginitems/group/remove": {
+      "post": {
+        "tags": [
+          "loginitems"
+        ],
+        "summary": "删除整个程序的启动项",
+        "description": "把同一个程序的所有启动项移入废纸篓。没有自己文件的项（系统代管的服务、旧式登录项）会被跳过。",
+        "operationId": "removeLoginItemGroup",
+        "requestBody": {
+          "description": "分组键",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/api.LoginItemGroupRemoveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "处理结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.LoginItemGroupRemoveResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "请求失败时的通用错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/loginitems/group/state": {
       "post": {
         "tags": [
@@ -3071,6 +3114,59 @@
           "available",
           "analyzing",
           "count"
+        ]
+      },
+      "api.LoginItemGroupRemoveRequest": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group"
+        ]
+      },
+      "api.LoginItemGroupRemoveResponse": {
+        "type": "object",
+        "properties": {
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "group": {
+            "type": "string"
+          },
+          "moved": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "group",
+          "name",
+          "total",
+          "moved"
         ]
       },
       "api.LoginItemGroupStateRequest": {

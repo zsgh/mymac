@@ -107,6 +107,46 @@ func (s *Server) analyzeStatus() api.LoginItemAnalyzeResponse {
 	}
 }
 
+// handleLoginItemGroupRemove deletes every startup item of one program.
+//
+// The files go to the Trash, so a mistake can be undone. The items that have
+// no file of their own — the services the system submits for an app, the old
+// login items — come back with the app and are reported as skipped.
+func (s *Server) handleLoginItemGroupRemove(w http.ResponseWriter, r *http.Request) {
+	var body api.LoginItemGroupRemoveRequest
+	if err := decodeJSON(r, &body); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	res, err := s.loginItems.RemoveGroup(r.Context(), body.Group)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	detail := "移入废纸篓 " + strconv.Itoa(len(res.Moved)) + " 项"
+	if len(res.Skipped) > 0 {
+		detail += "，跳过 " + strconv.Itoa(len(res.Skipped)) + " 项"
+	}
+	if len(res.Failed) > 0 {
+		detail += "，失败 " + strconv.Itoa(len(res.Failed)) + " 项"
+	}
+	s.audit.Log(audit.Entry{
+		Action: audit.ActionAppUninst,
+		Target: res.Name,
+		Detail: detail,
+		Result: audit.ResultOK,
+	})
+	writeJSON(w, http.StatusOK, api.LoginItemGroupRemoveResponse{
+		OK:      len(res.Failed) == 0,
+		Group:   res.Key,
+		Name:    res.Name,
+		Total:   res.Total,
+		Moved:   res.Moved,
+		Failed:  res.Failed,
+		Skipped: res.Skipped,
+	})
+}
+
 // handleLoginItemGroupState turns every startup item of one program on or
 // off.
 //

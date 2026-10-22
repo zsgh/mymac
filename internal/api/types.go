@@ -256,6 +256,27 @@ type LoginItemGroupStateResponse struct {
 	Failed  []string `json:"failed,omitempty"`
 }
 
+// LoginItemGroupRemoveRequest asks for the startup items of one program to
+// be removed.
+type LoginItemGroupRemoveRequest struct {
+	// Group is the key of the group, as reported by the list endpoint.
+	Group string `json:"group"`
+}
+
+// LoginItemGroupRemoveResponse reports what the group removal did.
+type LoginItemGroupRemoveResponse struct {
+	OK    bool   `json:"ok"`
+	Group string `json:"group"`
+	Name  string `json:"name"`
+	Total int    `json:"total"`
+	// Moved are the items that went to the Trash.
+	Moved []string `json:"moved"`
+	// Failed are the items that could not be removed.
+	Failed []string `json:"failed,omitempty"`
+	// Skipped are the items that have no file of their own.
+	Skipped []string `json:"skipped,omitempty"`
+}
+
 // LoginItemAnalyzeResponse reports the state of the risk analysis.
 type LoginItemAnalyzeResponse struct {
 	// Available reports whether an AI can be asked at all.
