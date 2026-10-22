@@ -320,3 +320,74 @@ func TestWarmMissingSkipsKnownSizes(t *testing.T) {
 		t.Error("a measurement was started although every size is known")
 	}
 }
+
+// TestScanHandsOutCopies makes sure the caller never gets the cached
+// applications.
+//
+// The cache belongs to the scanner: the background warmer writes the
+// measured sizes into it while a request reads the list. A caller that got
+// the cached applications would be reading a field while it is being
+// written, and writing to it would corrupt the cache for everybody else.
+func TestScanHandsOutCopies(t *testing.T) {
+	s := NewScanner()
+	s.mu.Lock()
+	s.cache = []*App{{Path: "/tmp/example.app", Name: "Example"}}
+	s.cacheAt = time.Now()
+	s.mu.Unlock()
+
+	list, err := s.Scan(context.Background(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("the scan returned %d applications", len(list))
+	}
+
+	// The server writes the running flag into what it got, on every
+	// request. That must not touch the cache.
+	list[0].Running = true
+
+	s.mu.Lock()
+	cached := s.cache[0]
+	s.mu.Unlock()
+	if cached.Running {
+		t.Error("the scan handed out the cached application")
+	}
+}
+
+// TestScanWhileTheWarmerRuns is the race regression test.
+//
+// The warmer writes the measured sizes into the cached applications while a
+// request reads the list. Run with -race, this fails as soon as the two
+// touch the same application again.
+func TestScanWhileTheWarmerRuns(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	dir := t.TempDir()
+	bundle := fakeApp(t, dir, "Example", "com.example.app", nil)
+
+	s := NewScanner()
+	s.mu.Lock()
+	s.cache = []*App{{Path: bundle, Name: "Example"}}
+	s.cacheAt = time.Now()
+	s.mu.Unlock()
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		s.WarmSizes(context.Background())
+	}()
+	for i := 0; i < 50; i++ {
+		list, err := s.Scan(context.Background(), false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, a := range list {
+			// The server reads the sizes and writes the running flag.
+			_ = a.Size
+			_ = a.SizeKnown
+			a.Running = true
+		}
+	}
+	<-done
+}

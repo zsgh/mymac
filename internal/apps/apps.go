@@ -249,10 +249,15 @@ func (s *Scanner) Scan(ctx context.Context, rescan bool) ([]*App, error) {
 	for k, v := range s.sizes {
 		sizes[k] = v
 	}
+	// The applications are copied under the lock as well. The cache belongs
+	// to the scanner: the background warmer writes the measured sizes into
+	// it, and a caller that held the cached applications would be reading
+	// a field while it was being written.
+	list := copyApps(cached)
 	s.mu.Unlock()
 
 	if !rescan && fresh {
-		return cached, nil
+		return list, nil
 	}
 
 	// The slow part (codesign, plutil) runs without the lock, so the size
@@ -293,6 +298,9 @@ func (s *Scanner) Scan(ctx context.Context, rescan bool) ([]*App, error) {
 	s.mu.Lock()
 	s.cache = out
 	s.cacheAt = time.Now()
+	// The caller gets copies: the cache stays the scanner's own, and the
+	// warmer is free to write the measured sizes into it.
+	list = copyApps(out)
 	s.mu.Unlock()
 
 	// The sizes of a fresh scan are not known yet. Measuring them right away
@@ -300,7 +308,25 @@ func (s *Scanner) Scan(ctx context.Context, rescan bool) ([]*App, error) {
 	// request is dropped on purpose: it is cancelled as soon as the response
 	// is written, which would abort the measurement half way.
 	s.warmMissing(context.WithoutCancel(ctx))
-	return out, nil
+	return list, nil
+}
+
+// copyApps returns copies of the applications.
+//
+// The applications are small and there are a few dozen of them, so copying
+// them is cheap. Handing the cached applications out instead would let a
+// caller race with the background warmer, which writes the measured sizes
+// into them.
+func copyApps(list []*App) []*App {
+	if len(list) == 0 {
+		return nil
+	}
+	out := make([]*App, 0, len(list))
+	for _, a := range list {
+		cp := *a
+		out = append(out, &cp)
+	}
+	return out
 }
 
 // describe builds the metadata of one app bundle.
