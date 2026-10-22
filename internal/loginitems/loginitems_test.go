@@ -63,6 +63,102 @@ func TestReadPlistDaemonNeedsAdmin(t *testing.T) {
 	}
 }
 
+// TestReadPlistProgramKey checks the plists that name the program directly.
+//
+// Plenty of agents use the Program key instead of ProgramArguments; without
+// it the program of the item stays empty and the item cannot be grouped.
+func TestReadPlistProgramKey(t *testing.T) {
+	dir := t.TempDir()
+	body := `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key><string>com.example.program</string>
+	<key>Program</key><string>/usr/local/bin/agent</string>
+</dict>
+</plist>
+`
+	path := writePlist(t, dir, "com.example.program.plist", body)
+	item := readPlist(path, KindLaunchAgent)
+	if item.Program != "/usr/local/bin/agent" {
+		t.Errorf("program = %q", item.Program)
+	}
+}
+
+// TestGroupOfTheSameApp checks that the helpers of one app land together.
+//
+// One app often brings several startup items with it, and the user wants to
+// turn the program off in one go.
+func TestGroupOfTheSameApp(t *testing.T) {
+	items := []Item{
+		{Label: "com.example.main", Program: "/Applications/Example.app/Contents/MacOS/Example", Enabled: true},
+		{Label: "com.example.helper", Program: "/Applications/Example.app/Contents/Helpers/Helper", Enabled: true},
+		// A helper that brings its own bundle still belongs to the app.
+		{Label: "com.example.nested", Program: "/Applications/Example.app/Contents/Helper.app/Contents/MacOS/Helper", Enabled: false},
+		// Another program, on its own.
+		{Label: "com.other.main", Program: "/Applications/Other.app/Contents/MacOS/Other", Enabled: true},
+		// No program at all: the label is the group.
+		{Label: "com.example.leftover", Enabled: true},
+	}
+	groupItems(items, nil)
+
+	if items[0].GroupKey != "/Applications/Example.app" {
+		t.Errorf("group key = %q", items[0].GroupKey)
+	}
+	if items[0].GroupName != "Example" {
+		t.Errorf("group name = %q", items[0].GroupName)
+	}
+	for _, i := range []int{0, 1, 2} {
+		if items[i].GroupSize != 3 {
+			t.Errorf("item %d: group size = %d", i, items[i].GroupSize)
+		}
+	}
+	// Two of the three are still enabled.
+	if items[0].GroupOn != 2 {
+		t.Errorf("group on = %d", items[0].GroupOn)
+	}
+	if items[3].GroupSize != 1 {
+		t.Errorf("the other program has %d items", items[3].GroupSize)
+	}
+	if items[4].GroupKey != "com.example.leftover" {
+		t.Errorf("the leftover has the group key %q", items[4].GroupKey)
+	}
+}
+
+// TestGroupOfTheLabelBundleID checks the services that do not name their
+// program.
+func TestGroupOfTheLabelBundleID(t *testing.T) {
+	cases := []struct {
+		label string
+		want  string
+	}{
+		{"application.com.google.Chrome.23188742.62308572.AADEA518", "com.google.Chrome"},
+		{"application.cn.trae.app.62794438.62794443", "cn.trae.app"},
+		{"com.microsoft.VSCode.ShipIt", "com.microsoft.VSCode"},
+		{"com.example.plain", ""},
+		{"ynote-desktop.ShipIt", ""},
+	}
+	for _, c := range cases {
+		if got := bundleIDFromLabel(c.label); got != c.want {
+			t.Errorf("bundleIDFromLabel(%q) = %q, want %q", c.label, got, c.want)
+		}
+	}
+}
+
+// TestGroupNameFromARunningApp checks that a service is matched to the app
+// it belongs to.
+func TestGroupNameFromARunningApp(t *testing.T) {
+	apps := []string{"/Applications/Google Chrome.app", "/Applications/Trae CN.app"}
+	item := Item{Label: "application.com.google.Chrome.23188742.62308572"}
+	key, name := groupOf(&item, apps)
+	if key != "/Applications/Google Chrome.app" {
+		t.Errorf("group key = %q", key)
+	}
+	if name != "Google Chrome" {
+		t.Errorf("group name = %q", name)
+	}
+}
+
 func TestReadPlistMissing(t *testing.T) {
 	item := readPlist(filepath.Join(t.TempDir(), "nope.plist"), KindLaunchAgent)
 	if item.Label != "" {

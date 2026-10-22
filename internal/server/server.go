@@ -383,9 +383,10 @@ func (s *Server) apiHandlers() map[string]http.HandlerFunc {
 		"POST /api/ports/rules/override":         s.handlePortRulesOverride,
 
 		// Startup items.
-		"GET /api/loginitems":         s.handleLoginItems,
-		"POST /api/loginitems/state":  s.handleLoginItemState,
-		"POST /api/loginitems/remove": s.handleLoginItemRemove,
+		"GET /api/loginitems":              s.handleLoginItems,
+		"POST /api/loginitems/state":       s.handleLoginItemState,
+		"POST /api/loginitems/remove":      s.handleLoginItemRemove,
+		"POST /api/loginitems/group/state": s.handleLoginItemGroupState,
 
 		// Applications and cleaning.
 		"GET /api/apps":               s.handleApps,

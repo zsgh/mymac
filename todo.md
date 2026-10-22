@@ -77,6 +77,44 @@ macOS 清理 + 进程管理 + 环境变量管理工具。Go 后端，本地 Web 
 - [x] 顺带：左下角加了「接口文档」之后 footer 挤不下，「审计日志 / 接口文档」改成一行，
       主题选择和状态灯放到第二行
 
+### 步骤 7：启动程序按程序分组
+- [x] 现象：一个应用带好几个启动项（主程序、helper、Sparkle 更新器），
+      想停掉整个程序得点好几次「禁用」
+- [x] 本机实测：先摸清每个启动项的「程序」是谁
+  - plist 里的 `Program` / `ProgramArguments`——**原来的代码只读 `ProgramArguments`**，
+    用 `Program` 键的 plist（Google Keystone、Sogou 等）程序路径是空的
+  - 没有 plist 的 launchd 服务不说自己跑什么，**但进程知道**：一次 `ps -axo pid=,comm=`
+    就能把 pid 对上程序路径
+  - 分组规则：程序在哪个 `.app` 里就按哪个 `.app` 分（取最外层那个，
+    `SogouInput.app/Contents/SogouTaskManager.app/...` 仍算 SogouInput）；
+    没有程序就从标签里读 bundle id（`application.com.google.Chrome.123.456`、
+    `com.microsoft.VSCode.ShipIt`），再和正在运行的应用名对上
+- [x] 修法：每个启动项带上 `groupKey` / `groupName` / `groupSize` / `groupOn`，
+      「程序」列显示程序名，多项一组时给一个「全部禁用 / 全部启用」按钮；
+      逐行的「禁用 / 启用」原样保留，细分控制不受影响
+- [x] 新接口 `POST /api/loginitems/group/state`：按分组键一次开关整组，
+      失败和跳过的项（旧式登录项）分别报出来
+- [x] 验收：本机 45 个第三方启动项分成 35 组，其中 AweSun 4 项、SogouInput 3 项、
+      ToDesk / Trae CN / VSCode / WeChat / Standard Notes 各 2 项；
+      实测禁用 Standard Notes 整组 → 两项都进 launchd 的 disabled 库 → 再整组启用 → 复原
+
+### 步骤 8：「已禁用 · 下次登录会恢复」这句话是错的
+- [x] 现象：启动程序页的第四张卡写着「已禁用 N · 下次登录会恢复」
+- [x] 本机实测（`launchctl disable` 一个标签后看落盘情况）：
+  - 标记写进了 `/var/db/com.apple.xpc.launchd/disabled.<uid>.plist`，**在磁盘上**，
+    所以它**跨登录、跨重启都有效**，不是「下次登录会恢复」
+  - `launchctl disable` **不会停掉正在运行的进程**：服务还在跑，只是下次不再加载
+    （自建了一个测试 agent 验证：disable 之后 state 仍是 running，进程还在）
+- [x] 修法
+  - 卡片副标题改成「**下次登录不再启动**」（这才是禁用真正做的事）
+  - 表头上方的说明改掉：立即生效、正在跑的进程不会停、标记重启后依然有效
+  - 详情抽屉里加一行「禁用」说明，讲清楚这三条
+  - 卡片上的计数改成和表格一致（之前数的是全部 472 项，包括看不见的系统项，
+    而用户只能看到 1 个已禁用项，所以写着「已禁用 2」）
+- [x] 顺带发现并修掉：`launchctl disable` 对**任何**标签都返回成功，
+  所以旧式登录项的「禁用」按钮其实是假的（只往数据库里塞一条没用的记录）。
+  现在这类项的按钮是灰的，接口也会把它们列为「跳过」
+
 ---
 
 ## 第三轮迭代（2026-10-21）

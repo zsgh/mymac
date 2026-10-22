@@ -237,6 +237,25 @@ type LoginItemRemoveRequest struct {
 	Path string `json:"path"`
 }
 
+// LoginItemGroupStateRequest turns every startup item of one program on or
+// off.
+type LoginItemGroupStateRequest struct {
+	// Group is the key of the group, as reported by the list endpoint.
+	Group   string `json:"group"`
+	Enabled bool   `json:"enabled"`
+}
+
+// LoginItemGroupStateResponse reports what the group action did.
+type LoginItemGroupStateResponse struct {
+	OK      bool     `json:"ok"`
+	Group   string   `json:"group"`
+	Name    string   `json:"name"`
+	Total   int      `json:"total"`
+	Changed int      `json:"changed"`
+	Skipped []string `json:"skipped,omitempty"`
+	Failed  []string `json:"failed,omitempty"`
+}
+
 // ----------------------------------------------------------------- apps
 
 // AppListResponse lists the installed applications.

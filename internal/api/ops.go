@@ -502,6 +502,20 @@ var endpoints = []Endpoint{
 			{Status: "200", Description: "已删除", Type: OKResponse{}},
 		},
 	},
+	{
+		Method: "POST", Path: "/api/loginitems/group/state", Tag: "loginitems",
+		Summary:     "启用或禁用整个程序",
+		Description: "一次开关同一个程序的所有启动项。分组键由列表接口给出。",
+		OperationID: "setLoginItemGroupState",
+		Request: &RequestSpec{
+			Description: "分组键与目标状态",
+			Type:        LoginItemGroupStateRequest{},
+			Required:    true,
+		},
+		Responses: []ResponseSpec{
+			{Status: "200", Description: "处理结果", Type: LoginItemGroupStateResponse{}},
+		},
+	},
 
 	// -------------------------------------------------------------- apps
 	{

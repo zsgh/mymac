@@ -119,7 +119,7 @@
             <button class="btn" id="login-refresh">刷新</button>
           </div>
         </div>
-        <div class="hint">「禁用 / 启用」通过 <code>launchctl</code> 立即生效，但下次登录会恢复；删除 LaunchAgent 则会真正移除它（移入废纸篓，可恢复）。</div>
+        <div class="hint">「禁用 / 启用」通过 <code>launchctl</code> 立即生效：正在运行的进程不会停，但登录后不再启动，这个标记重启后依然有效。删除 LaunchAgent 则是真正移除它（移入废纸篓，可恢复）。</div>
         <div class="table-wrap"><table class="table" id="login-table"></table></div>
       </div>
     </section>

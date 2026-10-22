@@ -371,6 +371,9 @@ function showLoginDetail(label) {
     <dt>来源</dt><dd>${esc(i.source || '—')}</dd>
     <dt>plist</dt><dd>${esc(i.plistPath || '—')}</dd>
     <dt>状态</dt><dd>${i.enabled ? '已启用' : '已禁用'}${i.loaded ? ' · 运行中' : ''}${i.pid ? ' · pid ' + i.pid : ''}</dd>
+    <dt>禁用</dt><dd>${i.disableable
+        ? '只影响下次启动：正在运行的进程不会停，登录后不再启动'
+        : '旧式登录项不能禁用，请到「系统设置 → 通用 → 登录项」中移除'}</dd>
     <dt>可删除</dt><dd>${i.removable ? '可以' : '系统项，不提供删除'}</dd>
   </dl>`);
 }
@@ -420,25 +423,28 @@ function renderLogin() {
   const d = loginState.data;
   if (!d) return;
   const q = loginState.search.trim().toLowerCase();
-  let rows = d.items || [];
-  if (!loginState.system) rows = rows.filter(i => !i.isSystem);
+  // The counts describe the whole list, the search only narrows the table.
+  let all = d.items || [];
+  if (!loginState.system) all = all.filter(i => !i.isSystem);
+  let rows = all;
   if (q) {
     rows = rows.filter(i =>
       i.label.toLowerCase().includes(q) ||
-      (i.program || '').toLowerCase().includes(q));
+      (i.program || '').toLowerCase().includes(q) ||
+      (i.groupName || '').toLowerCase().includes(q));
   }
 
   rows = sortRows(rows, loginState, loginAccessors);
 
   const kinds = {};
-  for (const i of d.items) kinds[i.kind] = (kinds[i.kind] || 0) + 1;
-  const disabled = d.items.filter(i => !i.enabled).length;
+  for (const i of all) kinds[i.kind] = (kinds[i.kind] || 0) + 1;
+  const disabled = all.filter(i => !i.enabled).length;
 
   $('#login-summary').innerHTML = [
-    card('启动项', String(d.items.length), 'launchd 服务与代理'),
+    card('启动项', String(all.length), 'launchd 服务与代理'),
     card('LaunchAgent', String(kinds.launchAgent || 0), '用户级'),
     card('LaunchDaemon', String(kinds.launchDaemon || 0), '系统级'),
-    card('已禁用', String(disabled), '下次登录会恢复'),
+    card('已禁用', String(disabled), '下次登录不再启动'),
   ].join('');
 
   const t = $('#login-table');
@@ -451,13 +457,16 @@ function renderLogin() {
     rows.map(i => `<tr data-label="${esc(i.label)}">
       <td class="mono"><div class="clip">${esc(i.label)}</div>${i.isSystem ? ' <span class="tag mute">系统</span>' : ''}</td>
       <td><span class="tag mute">${esc(kindLabel[i.kind] || i.kind)}</span></td>
-      <td class="mono muted" title="${esc(i.program || '')}"><div class="clip clip-nowrap">${esc(shortPath(i.program) || '—')}</div></td>
+      <td class="mono muted" title="${esc(i.program || i.groupName || '')}">
+        <div class="clip clip-nowrap">${esc(i.groupName || shortPath(i.program) || '—')}</div>
+        ${groupButton(i)}
+      </td>
       <td>${i.enabled
           ? '<span class="tag ok">已启用</span>'
           : '<span class="tag bad">已禁用</span>'}${i.loaded ? ' <span class="tag info">运行中</span>' : ''}${i.pid ? ' <span class="muted mono">pid ' + i.pid + '</span>' : ''}</td>
       <td class="muted"><div class="clip">${esc(i.source || '—')}</div></td>
       <td>
-        <button class="btn tiny" data-act="toggle" data-enabled="${i.enabled}">${i.enabled ? '禁用' : '启用'}</button>
+        <button class="btn tiny" data-act="toggle" data-enabled="${i.enabled}"${i.disableable ? '' : ' disabled title="旧式登录项不能禁用，请到「系统设置 → 通用 → 登录项」中移除"'}>${i.enabled ? '禁用' : '启用'}</button>
         ${i.removable ? `<button class="btn tiny danger" data-act="remove" data-path="${esc(i.plistPath || '')}">删除</button>` : ''}
       </td>
     </tr>`).join('') + '</tbody>';
@@ -478,6 +487,8 @@ function renderLogin() {
           toast(enabled ? '已启用' : '已禁用', 'ok');
           loadLogin();
         } catch (e) { toast(e.message, 'err'); }
+      } else if (b.dataset.act === 'group') {
+        await toggleGroup(b.dataset.group, b.dataset.enable === 'true');
       } else if (b.dataset.act === 'remove') {
         const ok = await modal({
           title: '删除启动项',
@@ -493,4 +504,32 @@ function renderLogin() {
       }
     }));
   });
+}
+
+// groupButton renders the button that turns every startup item of one
+// program on or off at once.
+//
+// One app often brings several startup items with it, and the user thinks
+// of the program, not of the individual labels.
+function groupButton(i) {
+  if (!i.groupKey || i.groupSize < 2) return '';
+  const disable = i.groupOn > 0;
+  return `<button class="btn tiny" data-act="group" data-group="${esc(i.groupKey)}" data-enable="${!disable}">` +
+    `${disable ? '全部禁用' : '全部启用'} <span class="muted">${i.groupSize}</span></button>`;
+}
+
+// toggleGroup turns every startup item of one program on or off.
+async function toggleGroup(group, enabled) {
+  try {
+    const r = await api('/api/loginitems/group/state', { method: 'POST', body: { group, enabled } });
+    const name = r.name || '这个程序';
+    if (r.failed && r.failed.length) {
+      toast(`${name}：改了 ${r.changed} 项，失败 ${r.failed.length} 项`, 'err');
+    } else if (r.skipped && r.skipped.length) {
+      toast(`${name}：改了 ${r.changed} 项，跳过 ${r.skipped.length} 项旧式登录项`, 'ok');
+    } else {
+      toast(`${name}：${enabled ? '已启用' : '已禁用'} ${r.changed} 项`, 'ok');
+    }
+    loadLogin();
+  } catch (e) { toast(e.message, 'err'); }
 }

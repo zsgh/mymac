@@ -226,8 +226,16 @@ tools/genopenapi/   生成 docs/ 里的接口描述
 - 来源：`launchctl print-disabled`（启用/禁用状态）、`launchctl print`（已加载的服务）、
   `~/Library/LaunchAgents`、`/Library/LaunchAgents`、`/Library/LaunchDaemons`、
   以及 System Events 的旧式登录项。
-- **禁用 / 启用**通过 `launchctl enable` / `disable` 立即生效，但下次登录会恢复。
+- **按程序分组**：一个应用常常带三四个启动项（主程序、helper、Sparkle 更新器），
+  「程序」列显示它们属于哪个程序，点「**全部禁用**」一次关掉整组；
+  每一行的「禁用 / 启用」还在，可以只关其中一个。
+- **禁用 / 启用**通过 `launchctl enable` / `disable` 立即生效：
+  **正在运行的进程不会停**，但登录后不再启动。这个标记写在 launchd 的数据库里
+  （`/var/db/com.apple.xpc.launchd/disabled.<uid>.plist`），**重启后依然有效**，
+  除非程序自己在安装时重新启用。
 - **删除** LaunchAgent 会把 plist 移入废纸篓，可随时恢复。
+- 旧式登录项（System Events）不是 launchd 服务，`launchctl` 会照单全收却什么也不做，
+  所以它们的「禁用」按钮是灰的，只能去「系统设置 → 通用 → 登录项」里移除。
 
 > `sfltool dumpbtm` 在本机（macOS 26.5.2）会挂死，25 秒无任何输出，所以没有采用。
 

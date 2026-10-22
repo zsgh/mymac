@@ -280,6 +280,43 @@
         - "pid"
         - "port"
       "type": "object"
+    "api.LoginItemGroupStateRequest":
+      "properties":
+        "enabled":
+          "type": "boolean"
+        "group":
+          "type": "string"
+      "required":
+        - "group"
+        - "enabled"
+      "type": "object"
+    "api.LoginItemGroupStateResponse":
+      "properties":
+        "changed":
+          "type": "integer"
+        "failed":
+          "items":
+            "type": "string"
+          "type": "array"
+        "group":
+          "type": "string"
+        "name":
+          "type": "string"
+        "ok":
+          "type": "boolean"
+        "skipped":
+          "items":
+            "type": "string"
+          "type": "array"
+        "total":
+          "type": "integer"
+      "required":
+        - "ok"
+        - "group"
+        - "name"
+        - "total"
+        - "changed"
+      "type": "object"
     "api.LoginItemRemoveRequest":
       "properties":
         "path":
@@ -1044,8 +1081,18 @@
           "type": "array"
         "developer":
           "type": "string"
+        "disableable":
+          "type": "boolean"
         "enabled":
           "type": "boolean"
+        "groupKey":
+          "type": "string"
+        "groupName":
+          "type": "string"
+        "groupOn":
+          "type": "integer"
+        "groupSize":
+          "type": "integer"
         "isSystem":
           "type": "boolean"
         "kind":
@@ -1078,6 +1125,11 @@
         - "removable"
         - "needsAdmin"
         - "isSystem"
+        - "disableable"
+        - "groupKey"
+        - "groupName"
+        - "groupSize"
+        - "groupOn"
       "type": "object"
     "loginitems.Kind":
       "enum":
@@ -2559,6 +2611,33 @@
                 "$ref": "#/components/schemas/api.ErrorResponse"
           "description": "请求失败时的通用错误"
       "summary": "启动项列表"
+      "tags":
+        - "loginitems"
+  "/api/loginitems/group/state":
+    "post":
+      "description": "一次开关同一个程序的所有启动项。分组键由列表接口给出。"
+      "operationId": "setLoginItemGroupState"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.LoginItemGroupStateRequest"
+        "description": "分组键与目标状态"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.LoginItemGroupStateResponse"
+          "description": "处理结果"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "启用或禁用整个程序"
       "tags":
         - "loginitems"
   "/api/loginitems/remove":

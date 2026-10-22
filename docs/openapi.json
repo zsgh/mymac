@@ -1306,6 +1306,49 @@
         }
       }
     },
+    "/api/loginitems/group/state": {
+      "post": {
+        "tags": [
+          "loginitems"
+        ],
+        "summary": "启用或禁用整个程序",
+        "description": "一次开关同一个程序的所有启动项。分组键由列表接口给出。",
+        "operationId": "setLoginItemGroupState",
+        "requestBody": {
+          "description": "分组键与目标状态",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/api.LoginItemGroupStateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "处理结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.LoginItemGroupStateResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "请求失败时的通用错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/loginitems/remove": {
       "post": {
         "tags": [
@@ -2611,6 +2654,60 @@
           "port"
         ]
       },
+      "api.LoginItemGroupStateRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "group": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "group",
+          "enabled"
+        ]
+      },
+      "api.LoginItemGroupStateResponse": {
+        "type": "object",
+        "properties": {
+          "changed": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "group": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "group",
+          "name",
+          "total",
+          "changed"
+        ]
+      },
       "api.LoginItemRemoveRequest": {
         "type": "object",
         "properties": {
@@ -3715,8 +3812,23 @@
           "developer": {
             "type": "string"
           },
+          "disableable": {
+            "type": "boolean"
+          },
           "enabled": {
             "type": "boolean"
+          },
+          "groupKey": {
+            "type": "string"
+          },
+          "groupName": {
+            "type": "string"
+          },
+          "groupOn": {
+            "type": "integer"
+          },
+          "groupSize": {
+            "type": "integer"
           },
           "isSystem": {
             "type": "boolean"
@@ -3761,7 +3873,12 @@
           "source",
           "removable",
           "needsAdmin",
-          "isSystem"
+          "isSystem",
+          "disableable",
+          "groupKey",
+          "groupName",
+          "groupSize",
+          "groupOn"
         ]
       },
       "loginitems.Kind": {
