@@ -270,6 +270,87 @@ type LoginItemAnalyzeResponse struct {
 	Error string `json:"error,omitempty"`
 }
 
+// AppLastUsedResponse says when the application was opened last.
+type AppLastUsedResponse struct {
+	// Known reports whether macOS knows the date at all.
+	Known bool `json:"known"`
+	// LastUsed is when the application was opened.
+	LastUsed time.Time `json:"lastUsed,omitempty"`
+	// DaysAgo is how many days that was.
+	DaysAgo int `json:"daysAgo"`
+	// Path is the bundle the answer is about.
+	Path string `json:"path,omitempty"`
+}
+
+// ---------------------------------------------------------------- settings
+
+// LLMSettings describes the model the AI features talk to.
+//
+// The key itself never leaves the server: the interface only learns
+// whether there is one.
+type LLMSettings struct {
+	// BaseURL is the root of the API.
+	BaseURL string `json:"baseUrl"`
+	// Model is the name of the model.
+	Model string `json:"model"`
+	// HasKey reports whether a key is stored.
+	HasKey bool `json:"hasKey"`
+}
+
+// DocsSettings holds the settings of the interface documentation.
+type DocsSettings struct {
+	// Enabled reports whether the documentation may be reached.
+	Enabled bool `json:"enabled"`
+}
+
+// SettingsResponse is the whole configuration.
+type SettingsResponse struct {
+	LLM  LLMSettings  `json:"llm"`
+	Docs DocsSettings `json:"docs"`
+}
+
+// SettingsRequest changes the configuration.
+type SettingsRequest struct {
+	LLM struct {
+		BaseURL string `json:"baseUrl"`
+		Model   string `json:"model"`
+		// APIKey is only used when it is filled in: an empty key keeps
+		// the one that is stored.
+		APIKey string `json:"apiKey"`
+	} `json:"llm"`
+	// Docs is optional: a missing part leaves the setting alone.
+	Docs *DocsSettings `json:"docs,omitempty"`
+}
+
+// DocsToggleRequest turns the documentation on or off.
+type DocsToggleRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
+// SettingsTestResponse reports whether the model answers.
+type SettingsTestResponse struct {
+	// OK reports whether the model answered.
+	OK bool `json:"ok"`
+	// Answer is what the model said.
+	Answer string `json:"answer,omitempty"`
+	// Error explains why it did not answer.
+	Error string `json:"error,omitempty"`
+}
+
+// ProcAnalyzeResponse reports the state of the process explanation.
+type ProcAnalyzeResponse struct {
+	// Available reports whether a model can be asked at all.
+	Available bool `json:"available"`
+	// Analyzing is true while an explanation is in flight.
+	Analyzing bool `json:"analyzing"`
+	// Count is the number of programs that have an explanation.
+	Count int `json:"count"`
+	// At is when the last explanation finished.
+	At time.Time `json:"at,omitempty"`
+	// Error explains why the last run failed, if it did.
+	Error string `json:"error,omitempty"`
+}
+
 // ----------------------------------------------------------------- apps
 
 // AppListResponse lists the installed applications.

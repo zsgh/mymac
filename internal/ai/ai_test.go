@@ -65,10 +65,10 @@ func TestParseAssessmentsRejectsGarbage(t *testing.T) {
 	}
 }
 
-// TestPromptHoldsTheFacts checks that the question carries what the AI
-// needs to judge.
+// TestRiskQuestionHoldsTheFacts checks that the question carries what the
+// model needs to judge.
 func TestPromptHoldsTheFacts(t *testing.T) {
-	p := Prompt([]Subject{
+	p := RiskQuestion([]Subject{
 		{Label: "com.example.agent", Kind: "launchAgent", Program: "/Applications/Example.app/Contents/MacOS/Example", Source: "/Users/x/Library/LaunchAgents", Enabled: true, PID: 42},
 		{Label: "com.example.other", Kind: "service"},
 	})
@@ -86,14 +86,31 @@ func TestPromptHoldsTheFacts(t *testing.T) {
 	}
 }
 
-// TestAvailableWithoutTheCLI checks that a missing CLI is reported instead
-// of panicking.
-func TestAvailableWithoutTheCLI(t *testing.T) {
-	a := &Analyzer{Command: "mymac-does-not-exist"}
-	if a.Available() {
-		t.Error("the analyzer must not be available")
+// TestUnconfiguredClient checks that a client without a model says so
+// instead of pretending to work.
+func TestUnconfiguredClient(t *testing.T) {
+	c := New(Config{})
+	if c.Configured() {
+		t.Error("the client must not be configured")
 	}
-	if _, err := a.Analyze(context.Background(), []Subject{{Label: "a"}}); err == nil {
+	if _, err := c.Analyze(context.Background(), []Subject{{Label: "a"}}); err == nil {
 		t.Error("expected an error")
+	}
+	if _, err := c.AnalyzeProcesses(context.Background(), []ProcessSubject{{Name: "a"}}); err == nil {
+		t.Error("expected an error")
+	}
+}
+
+// TestParseProcessNotes checks the answer about the processes.
+func TestParseProcessNotes(t *testing.T) {
+	got, err := ParseProcessNotes("```json\n[{\"name\":\"python3.11\",\"summary\":\"Python 解释器\",\"risk\":\"low\"}]\n```")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].Name != "python3.11" {
+		t.Fatalf("got %v", got)
+	}
+	if got[0].Risk != RiskLow {
+		t.Errorf("risk = %q", got[0].Risk)
 	}
 }

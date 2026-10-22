@@ -80,6 +80,21 @@ function fmtBytes(n) {
   return `${v.toFixed(v >= 100 ? 0 : 1)} ${units[i]}`;
 }
 
+// fmtRuntime renders how long something has been running.
+//
+// The same words everywhere: 3 天 5 小时, 2 小时 12 分, 45 秒.
+function fmtRuntime(startSec) {
+  if (!startSec) return '—';
+  let sec = Math.max(0, Math.floor(Date.now() / 1000 - startSec));
+  const d = Math.floor(sec / 86400); sec -= d * 86400;
+  const h = Math.floor(sec / 3600); sec -= h * 3600;
+  const m = Math.floor(sec / 60); sec -= m * 60;
+  if (d) return `${d} 天 ${h} 小时`;
+  if (h) return `${h} 小时 ${m} 分`;
+  if (m) return `${m} 分 ${sec} 秒`;
+  return `${sec} 秒`;
+}
+
 function fmtNum(n) {
   if (n === null || n === undefined) return '—';
   if (n >= 1e9) return (n / 1e9).toFixed(2) + 'G';
@@ -162,6 +177,7 @@ const VIEWS = {
   login: { title: '启动程序',  init: initLogin },
   env:   { title: '环境变量',  init: initEnv },
   perm:  { title: '权限',      init: initPerm },
+  settings: { title: '系统设置', init: initSettings },
 };
 
 let currentView = null;
@@ -195,7 +211,7 @@ function init() {
   initDrawer();
   $$('.nav-item').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
   $('#btn-menu').addEventListener('click', () => $('#sidebar').classList.toggle('open'));
-  $('#btn-audit').addEventListener('click', showAudit);
+  initSettingsPage();
 
   api('/api/health').then(d => {
     $('#brand-version').textContent = 'v' + (d.version || '?');
@@ -407,7 +423,12 @@ async function initApps() {
 }
 
 async function loadApps(rescan) {
-  showLoading('#apps-table', rescan ? '正在扫描应用并统计大小…' : '加载中…');
+  // The placeholder only goes up when there is nothing to show yet. The
+  // table is polled every second and a placeholder that comes back every
+  // time looks like a hang.
+  const t = $('#apps-table');
+  const first = !appState.list.length;
+  if (first) showLoading('#apps-table', rescan ? '正在扫描应用并统计大小…' : '加载中…');
   try {
     const d = await api('/api/apps' + (rescan ? '?rescan=1' : ''));
     const items = d.items || [];
@@ -416,7 +437,7 @@ async function loadApps(rescan) {
     // it every time would replace the whole DOM for nothing, so it is only
     // redrawn when the numbers actually moved.
     const sig = appsSignature(items);
-    if (rescan || sig !== appState.sig) {
+    if (rescan || sig !== appState.sig || t.querySelector('.loading')) {
       appState.sig = sig;
       renderApps();
     }
@@ -594,6 +615,27 @@ async function showAppDetail(bundleID) {
   const items = g.items || [];
   const residualSize = items.reduce((a, b) => a + (b.size || 0), 0);
 
+  // When was the application opened last? macOS knows it, the Spotlight
+  // metadata of the bundle does.
+  let used = '';
+  try {
+    const u = await api(`/api/apps/lastused?id=${encodeURIComponent(bundleID)}`);
+    if (u.known) {
+      const d0 = u.daysAgo;
+      const when = new Date(u.lastUsed);
+      if (d0 <= 0) {
+        used = `今天 ${when.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+      } else if (d0 === 1) {
+        used = '昨天';
+      } else {
+        used = `${d0} 天前`;
+      }
+      used += `（${when.toLocaleDateString('zh-CN')}）`;
+    } else {
+      used = '不知道（Spotlight 没有记录）';
+    }
+  } catch (e) { used = '—'; }
+
   openDrawer(app.name || bundleID, `
     <dl class="kv">
       <dt>Bundle ID</dt><dd>${esc(app.bundleId || '—')}</dd>
@@ -604,6 +646,7 @@ async function showAppDetail(bundleID) {
       <dt>用户数据</dt><dd>${app.sizeKnown ? fmtBytes(app.dataSize) : '计算中…'}</dd>
       <dt>残留文件</dt><dd>${items.length} 项 · ${fmtBytes(residualSize)}</dd>
       <dt>状态</dt><dd>${app.running ? '运行中' : (app.isSystem ? '系统应用' : '空闲')}</dd>
+      <dt>最近使用</dt><dd>${used}</dd>
     </dl>
     <div class="detail-actions" style="margin:14px 0 6px">
       <button class="btn primary" id="app-add-uninstall" ${app.isSystem ? 'disabled' : ''}>加入卸载列表</button>
@@ -649,7 +692,7 @@ function renderUninstall() {
         <span class="tag info">${fmtBytes(gsize)}</span>
         ${g.running ? '<span class="tag warn">运行中，建议先退出</span>' : ''}
         ${g.isSystem ? '<span class="tag bad">系统应用</span>' : ''}
-        <button class="btn tiny" data-un-remove="${esc(g.bundleId)}">移出列表</button>
+        <button class="btn tiny danger" data-un-remove="${esc(g.bundleId)}" title="只从列表里去掉，不会删除任何文件">移出列表</button>
       </div>
       <table class="table un-table"><tbody>` +
       e.rows.map((r, i) => `<tr>
@@ -1081,14 +1124,78 @@ async function executeClean() {
 
 // ------------------------------------------------------------------ procs
 
-const procState = { rows: [], filter: '', sort: 'cpu', sortDesc: true, paused: false, es: null, interval: 2000 };
+const procState = { rows: [], sorted: [], filter: '', state: '', runtime: 0, sort: 'cpu', sortDesc: true, es: null, interval: 0, notes: null };
+
+// The height of a row and the number of rows drawn outside the screen.
+// The table holds thousands of processes, so only the visible ones are
+// in the DOM.
 const ROW_H = 30;
 const OVERSCAN = 8;
 
-// procCols are the columns of the process table.
+// initProcs sets up the process view.
 //
-// Every column but the actions can be sorted, so the header does the work
-// the old sort dropdown used to do.
+// The table does not refresh on its own: the user picks how often, and
+// "不刷新" means the table shows the processes of the moment.
+async function initProcs() {
+  $('#procs-search').oninput = (e) => { procState.filter = e.target.value; renderProcs(); };
+  $('#procs-state').onchange = (e) => { procState.state = e.target.value; renderProcs(); };
+  $('#procs-runtime').oninput = (e) => { procState.runtime = +e.target.value || 0; renderProcs(); };
+  $('#procs-interval').onchange = (e) => { procState.interval = +e.target.value; restartStream(); };
+  $('#procs-refresh').onclick = () => loadProcs();
+  $('#procs-analyze').onclick = () => analyzeProcs();
+  $('#procs-snapshot').onclick = exportSnapshot;
+  const wrap = $('#procs-table').closest('.table-wrap');
+  wrap.addEventListener('scroll', () => renderProcRows());
+  showLoading('#procs-table', '正在读取进程…');
+  await loadProcs();
+  if (procState.interval > 0) restartStream();
+  // The stream stops when the user leaves the page.
+  return () => {
+    try { procState.es?.close(); } catch (e) { /* already closed */ }
+    procState.es = null;
+  };
+}
+
+// loadProcs reads the process table once.
+async function loadProcs() {
+  try {
+    const d = await api('/api/procs');
+    procState.rows = d.processes || [];
+    renderProcs();
+  } catch (e) {
+    showError('#procs-table', e.message);
+  }
+}
+
+// analyzeProcs asks the model what the running programs are.
+//
+// The names are not enough: ten processes called "python3.11" could be
+// anything. The paths and the command line say more, and the model can
+// read them.
+async function analyzeProcs() {
+  if (!await aiReady()) return;
+  const btn = $('#procs-analyze');
+  btn.disabled = true;
+  btn.textContent = '分析中…';
+  try {
+    await api('/api/procs/analyze', { method: 'POST' });
+    toast('AI 正在看这些进程，稍等一下', 'ok');
+    for (let i = 0; i < 90; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      const d = await api('/api/procs');
+      if ((d.processes || []).some(p => p.note)) {
+        procState.rows = d.processes || [];
+        renderProcs();
+        break;
+      }
+    }
+  } catch (e) {
+    toast(e.message, 'err');
+  }
+  btn.disabled = false;
+  btn.textContent = 'AI 分析';
+}
+
 const procCols = [
   { key: 'pid', label: 'PID', cls: 'mono' },
   { key: 'ppid', label: 'PPID', cls: 'mono' },
@@ -1100,6 +1207,7 @@ const procCols = [
   { key: 'fds', label: 'fd', cls: 'num' },
   { key: 'arch', label: '架构' },
   { key: 'state', label: '状态' },
+  { key: 'startTime', label: '运行时长' },
   { key: 'appName', label: '来源' },
   { key: '', label: '操作' },
 ];
@@ -1116,34 +1224,15 @@ const procAccessors = {
   fds: p => p.fds || 0,
   arch: p => p.arch || '',
   state: p => p.state || '',
+  startTime: p => p.startTime || 0,
   appName: p => p.appName || '',
 };
 
-async function initProcs() {
-  $('#procs-search').oninput = (e) => { procState.filter = e.target.value; renderProcs(); };
-  $('#procs-interval').onchange = (e) => { procState.interval = +e.target.value; restartStream(); };
-  $('#procs-pause').onclick = () => {
-    procState.paused = !procState.paused;
-    $('#procs-pause').textContent = procState.paused ? '继续' : '暂停';
-    if (procState.paused) procState.es?.close();
-    else restartStream();
-  };
-  $('#procs-snapshot').onclick = exportSnapshot;
-  const wrap = $('#procs-table').closest('.table-wrap');
-  wrap.addEventListener('scroll', () => renderProcRows());
-  restartStream();
-  // The table is filled by the stream; until the first frame arrives it
-  // shows a placeholder instead of an empty box.
-  showLoading('#procs-table', '正在连接实时数据…');
-  // The stream stops when the user leaves the page.
-  return () => {
-    try { procState.es?.close(); } catch (e) { /* already closed */ }
-    procState.es = null;
-  };
-}
-
 function restartStream() {
   procState.es?.close();
+  procState.es = null;
+  // "不刷新" means the table keeps the processes of the moment.
+  if (!procState.interval) return;
   const es = new EventSource(`/api/procs/stream?interval=${procState.interval}`);
   procState.es = es;
   es.onmessage = (ev) => {
@@ -1203,6 +1292,16 @@ function renderProcs() {
       String(p.pid) === q ||
       (p.user || '').toLowerCase().includes(q) ||
       (p.appName || '').toLowerCase().includes(q));
+  }
+  // The state filter.
+  if (procState.state) {
+    rows = rows.filter(p => (p.state || '') === procState.state);
+  }
+  // The runtime filter: only the processes that have been running longer
+  // than the given number of minutes.
+  if (procState.runtime > 0) {
+    const limit = procState.runtime * 60;
+    rows = rows.filter(p => p.startTime > 0 && (Date.now() / 1000 - p.startTime) > limit);
   }
   rows = sortRows(rows, procState, procAccessors);
   procState.sorted = rows;
@@ -1274,7 +1373,7 @@ function procRow(p) {
   return `<tr data-pid="${p.pid}">
     <td class="mono">${p.pid}</td>
     <td class="mono muted">${p.ppid}</td>
-    <td>${p.protected ? '🔒 ' : ''}${'·'.repeat(Math.min(p.depth || 0, 6))}${esc(p.name)}${p.self ? ' <span class="tag info">本进程</span>' : ''}</td>
+    <td title="${p.depth ? '进程树的第 ' + p.depth + ' 层' : ''}">${p.protected ? '🔒 ' : ''}<span class="tree-depth">${'·'.repeat(Math.min(p.depth || 0, 6))}</span>${esc(p.name)}${p.self ? ' <span class="tag info">本进程</span>' : ''}${p.note ? ` <span class="tag ${p.noteRisk === 'high' ? 'bad' : p.noteRisk === 'medium' ? 'warn' : 'info'}" title="${esc(p.note + (p.notePurpose ? '：' + p.notePurpose : ''))}">AI</span>` : ''}</td>
     <td class="muted">${esc(p.user || '')}</td>
     <td class="num">${(p.cpu ?? 0).toFixed(1)}</td>
     <td class="num">${fmtBytes(p.mem)}</td>
@@ -1282,6 +1381,7 @@ function procRow(p) {
     <td class="num">${p.fds || '—'}</td>
     <td class="muted">${esc(p.arch || '—')}${p.rosetta ? ' <span class="tag warn">Rosetta</span>' : ''}</td>
     <td>${p.state ? `<span class="tag ${p.state === 'running' ? 'ok' : p.state === 'zombie' ? 'bad' : 'mute'}">${esc(p.state)}</span>` : ''}</td>
+    <td class="muted">${fmtRuntime(p.startTime)}</td>
     <td class="muted">${esc(p.appName || '')}</td>
     <td><button class="btn tiny" data-act="detail">详情</button></td>
   </tr>`;
@@ -1332,7 +1432,9 @@ async function showProcDetail(pid) {
       <dt>状态</dt><dd>${esc(p.state || '—')}</dd>
       <dt>架构</dt><dd>${esc(p.arch || '—')}${p.rosetta ? ' (Rosetta)' : ''}</dd>
       <dt>启动时间</dt><dd>${p.startTime ? esc(new Date(p.startTime * 1000).toLocaleString()) : '—'}</dd>
+      <dt>运行时长</dt><dd>${fmtRuntime(p.startTime)}</dd>
       <dt>签名</dt><dd>${esc(p.signer || '—')}</dd>
+      ${p.note ? `<dt>AI 说明</dt><dd>${esc(p.note)}${p.notePurpose ? '<br><span class="muted">' + esc(p.notePurpose) + '</span>' : ''}</dd>` : ''}
     </dl>
     ${ports.length ? `<h3 style="font-size:13px;margin:14px 0 0">网络连接</h3><div class="path-list">${ports.map(x => `<div class="path-item"><span class="sp">${esc(x)}</span></div>`).join('')}</div>` : ''}
     ${env.length ? `<h3 style="font-size:13px;margin:14px 0 0">启动时环境变量</h3><div class="path-list">${env.map(x => `<div class="path-item"><span class="sp">${esc(x.name)}=${x.sensitive ? '••••••' : esc(x.value)}</span></div>`).join('')}</div>` : ''}
@@ -1395,9 +1497,10 @@ const envAccessors = {
   line: v => v.line || 0,
 };
 
-const envState = { data: null, source: 'managed', reveal: new Set(), sort: 'name', sortDesc: false };
+const envState = { data: null, source: 'managed', reveal: new Set(), sort: 'name', sortDesc: false, search: '' };
 
 async function initEnv() {
+  $('#env-search').oninput = (e) => { envState.search = e.target.value; renderEnv(); };
   $$('#env-tabs .tab').forEach(t => t.addEventListener('click', () => {
     $$('#env-tabs .tab').forEach(x => x.classList.remove('active'));
     t.classList.add('active');
@@ -1496,8 +1599,11 @@ function renderEnv() {
   };
 
   const t = $('#env-table');
+  // The search looks at the name and at the value.
+  const q = envState.search.trim().toLowerCase();
+  const match = (v) => !q || (v.name || '').toLowerCase().includes(q) || (v.value || '').toLowerCase().includes(q);
   if (envState.source === 'managed') {
-    const items = sortRows(d.managed || [], envState, envAccessors);
+    const items = sortRows((d.managed || []).filter(match), envState, envAccessors);
     t.innerHTML = `<thead><tr>${sortHeader(envState, envCols7)}</tr></thead><tbody>` +
       (items.length ? items.map(v => {
         const sensitive = v.sensitive;
@@ -1520,17 +1626,17 @@ function renderEnv() {
       }).join('') : '<tr><td class="empty" colspan="7">还没有管理的环境变量</td></tr>') + '</tbody>';
     bindManagedRows();
   } else if (envState.source === 'launchd') {
-    const items = sortRows(d.launchd || [], envState, envAccessors);
+    const items = sortRows((d.launchd || []).filter(match), envState, envAccessors);
     t.innerHTML = `<thead><tr>${sortHeader(envState, envCols2)}</tr></thead><tbody>` +
       (items.length ? items.map(v => `<tr data-name="${esc(v.name)}"><td class="mono">${esc(v.name)}</td><td class="mono wrap">${esc(v.value)}</td></tr>`).join('')
         : '<tr><td class="empty" colspan="2">launchd 环境中没有变量</td></tr>') + '</tbody>';
   } else if (envState.source === 'shellFiles') {
-    const files = sortRows(d.shellFiles || [], envState, envAccessors);
+    const items = sortRows((d.shellFiles || []).filter(match), envState, envAccessors);
     t.innerHTML = `<thead><tr>${sortHeader(envState, envCols4)}</tr></thead><tbody>` +
-      (files.length ? files.map(v => `<tr data-name="${esc(v.name)}"><td class="mono">${esc(v.name)}</td><td class="mono wrap">${esc(v.value)}</td><td class="mono muted">${esc(v.file)}</td><td class="num">${v.line}</td></tr>`).join('')
+      (items.length ? items.map(v => `<tr data-name="${esc(v.name)}"><td class="mono">${esc(v.name)}</td><td class="mono wrap">${esc(v.value)}</td><td class="mono muted">${esc(v.file)}</td><td class="num">${v.line}</td></tr>`).join('')
         : '<tr><td class="empty" colspan="4">没有在 shell 配置中找到 export</td></tr>') + '</tbody>';
   } else {
-    const items = sortRows(d.self || [], envState, envAccessors);
+    const items = sortRows((d.self || []).filter(match), envState, envAccessors);
     t.innerHTML = `<thead><tr>${sortHeader(envState, envCols2)}</tr></thead><tbody>` +
       (items.length ? items.map(v => `<tr data-name="${esc(v.name)}"><td class="mono">${esc(v.name)}</td><td class="mono wrap">${esc(v.value)}</td></tr>`).join('')
         : '<tr><td class="empty" colspan="2">无法读取</td></tr>') + '</tbody>';

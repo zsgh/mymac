@@ -18,6 +18,21 @@
       "required":
         - "items"
       "type": "object"
+    "api.AppLastUsedResponse":
+      "properties":
+        "daysAgo":
+          "type": "integer"
+        "known":
+          "type": "boolean"
+        "lastUsed":
+          "format": "date-time"
+          "type": "string"
+        "path":
+          "type": "string"
+      "required":
+        - "known"
+        - "daysAgo"
+      "type": "object"
     "api.AppListResponse":
       "properties":
         "count":
@@ -103,6 +118,20 @@
       "required":
         - "paths"
         - "dryRun"
+      "type": "object"
+    "api.DocsSettings":
+      "properties":
+        "enabled":
+          "type": "boolean"
+      "required":
+        - "enabled"
+      "type": "object"
+    "api.DocsToggleRequest":
+      "properties":
+        "enabled":
+          "type": "boolean"
+      "required":
+        - "enabled"
       "type": "object"
     "api.DryRunResponse":
       "properties":
@@ -280,6 +309,19 @@
         - "pid"
         - "port"
       "type": "object"
+    "api.LLMSettings":
+      "properties":
+        "baseUrl":
+          "type": "string"
+        "hasKey":
+          "type": "boolean"
+        "model":
+          "type": "string"
+      "required":
+        - "baseUrl"
+        - "model"
+        - "hasKey"
+      "type": "object"
     "api.LoginItemAnalyzeResponse":
       "properties":
         "analyzing":
@@ -434,6 +476,24 @@
         - "value"
         - "remove"
       "type": "object"
+    "api.ProcAnalyzeResponse":
+      "properties":
+        "analyzing":
+          "type": "boolean"
+        "at":
+          "format": "date-time"
+          "type": "string"
+        "available":
+          "type": "boolean"
+        "count":
+          "type": "integer"
+        "error":
+          "type": "string"
+      "required":
+        - "available"
+        - "analyzing"
+        - "count"
+      "type": "object"
     "api.ProcDetailResponse":
       "properties":
         "process":
@@ -542,6 +602,37 @@
         - "processes"
         - "count"
         - "at"
+      "type": "object"
+    "api.SettingsRequest":
+      "properties":
+        "docs":
+          "allOf":
+            - "$ref": "#/components/schemas/api.DocsSettings"
+          "nullable": true
+        "llm": {}
+      "required":
+        - "llm"
+      "type": "object"
+    "api.SettingsResponse":
+      "properties":
+        "docs":
+          "$ref": "#/components/schemas/api.DocsSettings"
+        "llm":
+          "$ref": "#/components/schemas/api.LLMSettings"
+      "required":
+        - "llm"
+        - "docs"
+      "type": "object"
+    "api.SettingsTestResponse":
+      "properties":
+        "answer":
+          "type": "string"
+        "error":
+          "type": "string"
+        "ok":
+          "type": "boolean"
+      "required":
+        - "ok"
       "type": "object"
     "apps.App":
       "properties":
@@ -1469,6 +1560,12 @@
           "type": "integer"
         "netOut":
           "type": "integer"
+        "note":
+          "type": "string"
+        "notePurpose":
+          "type": "string"
+        "noteRisk":
+          "type": "string"
         "path":
           "type": "string"
         "pid":
@@ -1568,6 +1665,12 @@
           "type": "integer"
         "netOut":
           "type": "integer"
+        "note":
+          "type": "string"
+        "notePurpose":
+          "type": "string"
+        "noteRisk":
+          "type": "string"
         "openFiles":
           "items":
             "type": "string"
@@ -1901,6 +2004,40 @@
                 "$ref": "#/components/schemas/api.ErrorResponse"
           "description": "请求失败时的通用错误"
       "summary": "应用图标"
+      "tags":
+        - "apps"
+  "/api/apps/lastused":
+    "get":
+      "description": "返回应用最后一次被打开的时间（来自 Spotlight 元数据）。"
+      "operationId": "getAppLastUsed"
+      "parameters":
+        - "description": "应用的 bundle id"
+          "example": "com.apple.Safari"
+          "in": "query"
+          "name": "id"
+          "required": true
+          "schema":
+            "type": "string"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.AppLastUsedResponse"
+          "description": "最近一次使用时间"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "找不到应用"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "最近一次使用时间"
       "tags":
         - "apps"
   "/api/apps/residuals":
@@ -3004,6 +3141,26 @@
       "summary": "保存告警阈值"
       "tags":
         - "procs"
+  "/api/procs/analyze":
+    "post":
+      "description": "让 AI 说明正在跑的进程是干什么的。分析在后台跑，结果通过列表接口返回。"
+      "operationId": "analyzeProcesses"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ProcAnalyzeResponse"
+          "description": "分析状态"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "AI 解释进程"
+      "tags":
+        - "procs"
   "/api/procs/stream":
     "get":
       "description": "以 Server-Sent Events 推送进程表与系统概览。"
@@ -3197,6 +3354,99 @@
       "summary": "发送信号"
       "tags":
         - "procs"
+  "/api/settings":
+    "get":
+      "description": "返回大模型和接口文档的设置。密钥本身不会返回。"
+      "operationId": "getSettings"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.SettingsResponse"
+          "description": "当前设置"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "读取设置"
+      "tags":
+        - "settings"
+    "put":
+      "description": "保存大模型和接口文档的设置。密钥留空表示保持原样。"
+      "operationId": "updateSettings"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.SettingsRequest"
+        "description": "新的设置"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.SettingsResponse"
+          "description": "保存后的设置"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "保存设置"
+      "tags":
+        - "settings"
+  "/api/settings/docs":
+    "post":
+      "description": "关掉之后，接口文档和描述文件不再对外提供。"
+      "operationId": "toggleAPIDocs"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.DocsToggleRequest"
+        "description": "目标状态"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.DocsSettings"
+          "description": "新的状态"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "启用或禁用接口文档"
+      "tags":
+        - "settings"
+  "/api/settings/test":
+    "post":
+      "description": "问模型一句小话，确认接口地址、密钥和模型名是对的。"
+      "operationId": "testLLM"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.SettingsTestResponse"
+          "description": "测试结果"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "测试大模型"
+      "tags":
+        - "settings"
   "/api/system/overview":
     "get":
       "description": "返回 CPU、内存、磁盘、网络与电池的汇总。"
@@ -3261,3 +3511,5 @@
     "name": "clean"
   - "description": "接口描述本身"
     "name": "docs"
+  - "description": "大模型与接口文档的设置"
+    "name": "settings"

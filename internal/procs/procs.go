@@ -16,6 +16,7 @@ import (
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/process"
 
+	"mymac/internal/ai"
 	"mymac/internal/envs"
 	"mymac/internal/errs"
 )
@@ -78,6 +79,12 @@ type Process struct {
 	Group    string `json:"group,omitempty"`
 	Children []int  `json:"children,omitempty"`
 	Depth    int    `json:"depth"`
+	// Note is what the model says about the program.
+	Note string `json:"note,omitempty"`
+	// NotePurpose is what the user is using the program for.
+	NotePurpose string `json:"notePurpose,omitempty"`
+	// NoteRisk is the risk the model gave the program.
+	NoteRisk string `json:"noteRisk,omitempty"`
 }
 
 // Collection is one snapshot of the process table.
@@ -110,6 +117,18 @@ type Collector struct {
 	netPrev    map[int]netSample
 	netPrevAt  time.Time
 
+	// ai explains the running programs. It is optional: without a model
+	// the collector works exactly as before.
+	ai ai.Provider
+	// notes holds what the model said about the programs, by name.
+	notes map[string]ai.ProcessNote
+	// analyzing marks a running explanation.
+	analyzing bool
+	// analyzedAt is when the last explanation finished.
+	analyzedAt time.Time
+	// analyzeErr holds the error of the last explanation.
+	analyzeErr string
+
 	portsEnabled bool
 	netEnabled   bool
 }
@@ -126,7 +145,18 @@ func NewCollector(interval time.Duration) *Collector {
 		archCache: map[string]archResult{},
 		prevTimes: map[int32]cpu.TimesStat{},
 		netPrev:   map[int]netSample{},
+		notes:     map[string]ai.ProcessNote{},
 	}
+}
+
+// SetAI gives the collector a way to ask a model.
+//
+// The provider is called every time, so a model that is set up later is
+// picked up without restarting anything.
+func (c *Collector) SetAI(p ai.Provider) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.ai = p
 }
 
 // SetPortsEnabled turns the lsof collection on or off.
@@ -195,6 +225,7 @@ func (c *Collector) Collect(ctx context.Context) *Collection {
 
 	buildTree(procs)
 	sort.SliceStable(procs, func(i, j int) bool { return procs[i].PID < procs[j].PID })
+	c.applyNotes(procs)
 	out.Processes = procs
 	out.Count = len(procs)
 	out.Duration = time.Since(start).Milliseconds()

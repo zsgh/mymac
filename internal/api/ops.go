@@ -526,6 +526,65 @@ var endpoints = []Endpoint{
 		},
 	},
 
+	// ------------------------------------------------------------ procs
+	{
+		Method: "POST", Path: "/api/procs/analyze", Tag: "procs",
+		Summary:     "AI 解释进程",
+		Description: "让 AI 说明正在跑的进程是干什么的。分析在后台跑，结果通过列表接口返回。",
+		OperationID: "analyzeProcesses",
+		Responses: []ResponseSpec{
+			{Status: "200", Description: "分析状态", Type: ProcAnalyzeResponse{}},
+		},
+	},
+
+	// --------------------------------------------------------- settings
+	{
+		Method: "GET", Path: "/api/settings", Tag: "settings",
+		Summary:     "读取设置",
+		Description: "返回大模型和接口文档的设置。密钥本身不会返回。",
+		OperationID: "getSettings",
+		Responses: []ResponseSpec{
+			{Status: "200", Description: "当前设置", Type: SettingsResponse{}},
+		},
+	},
+	{
+		Method: "PUT", Path: "/api/settings", Tag: "settings",
+		Summary:     "保存设置",
+		Description: "保存大模型和接口文档的设置。密钥留空表示保持原样。",
+		OperationID: "updateSettings",
+		Request: &RequestSpec{
+			Description: "新的设置",
+			Type:        SettingsRequest{},
+			Required:    true,
+		},
+		Responses: []ResponseSpec{
+			{Status: "200", Description: "保存后的设置", Type: SettingsResponse{}},
+		},
+	},
+	{
+		Method: "POST", Path: "/api/settings/test", Tag: "settings",
+		Summary:     "测试大模型",
+		Description: "问模型一句小话，确认接口地址、密钥和模型名是对的。",
+		OperationID: "testLLM",
+		Responses: []ResponseSpec{
+			{Status: "200", Description: "测试结果", Type: SettingsTestResponse{}},
+		},
+	},
+	{
+		Method: "POST", Path: "/api/settings/docs", Tag: "settings",
+		Summary:     "启用或禁用接口文档",
+		Description: "关掉之后，接口文档和描述文件不再对外提供。",
+		OperationID: "toggleAPIDocs",
+		Request: &RequestSpec{
+			Description: "目标状态",
+			Type:        DocsToggleRequest{},
+			Required:    true,
+		},
+		Responses: []ResponseSpec{
+			{Status: "200", Description: "新的状态", Type: DocsSettings{}},
+		},
+	},
+
 	// -------------------------------------------------------------- apps
 	{
 		Method: "GET", Path: "/api/apps", Tag: "apps",
@@ -588,6 +647,19 @@ var endpoints = []Endpoint{
 		},
 		Responses: []ResponseSpec{
 			{Status: "200", Description: "移入废纸篓的结果，试运行时返回计划", OneOf: []any{trash.Result{}, DryRunResponse{}}},
+		},
+	},
+	{
+		Method: "GET", Path: "/api/apps/lastused", Tag: "apps",
+		Summary:     "最近一次使用时间",
+		Description: "返回应用最后一次被打开的时间（来自 Spotlight 元数据）。",
+		OperationID: "getAppLastUsed",
+		Params: []Param{
+			{Name: "id", In: "query", Description: "应用的 bundle id", Type: "", Required: true, Example: "com.apple.Safari"},
+		},
+		Responses: []ResponseSpec{
+			{Status: "200", Description: "最近一次使用时间", Type: AppLastUsedResponse{}},
+			{Status: "404", Description: "找不到应用", Type: ErrorResponse{}},
 		},
 	},
 	{

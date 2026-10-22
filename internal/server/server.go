@@ -34,6 +34,7 @@ import (
 	"mymac/internal/ports"
 	"mymac/internal/procs"
 	"mymac/internal/rules"
+	"mymac/internal/settings"
 	"mymac/internal/sysinfo"
 	"mymac/web"
 )
@@ -59,6 +60,7 @@ type Server struct {
 	portRules   *rules.Store
 
 	loginItems *loginitems.Collector
+	settings   *settings.Store
 
 	cleanJobs *cleaner.JobManager
 }
@@ -93,6 +95,9 @@ type Options struct {
 	LoginItems *loginitems.Collector
 	// CleanJobs runs the long file scans. When nil the server creates one.
 	CleanJobs *cleaner.JobManager
+	// Settings holds the things the user can configure. When nil the
+	// server creates one.
+	Settings *settings.Store
 }
 
 // New builds a server.
@@ -109,6 +114,8 @@ func New(opts Options) (*Server, error) {
 	if opts.Procs == nil {
 		opts.Procs = procs.NewCollector(2 * time.Second)
 	}
+	// The collector explains the processes when the user asks for it.
+	opts.Procs.SetAI(aiProviderFor(opts.Settings))
 	if opts.Sysinfo == nil {
 		opts.Sysinfo = sysinfo.NewCollector()
 	}
@@ -130,8 +137,11 @@ func New(opts Options) (*Server, error) {
 	if opts.PortActions == nil {
 		opts.PortActions = ports.NewActionManager(opts.PortRules, 5*time.Second)
 	}
+	if opts.Settings == nil {
+		opts.Settings = settings.NewStore()
+	}
 	if opts.LoginItems == nil {
-		opts.LoginItems = loginitems.NewCollectorWithAI(newAIAnalyzer())
+		opts.LoginItems = loginitems.NewCollectorWithAI(aiProviderFor(opts.Settings))
 	}
 	if opts.CleanJobs == nil {
 		opts.CleanJobs = cleaner.NewJobManager()
@@ -152,6 +162,7 @@ func New(opts Options) (*Server, error) {
 		portRules:   opts.PortRules,
 
 		loginItems: opts.LoginItems,
+		settings:   opts.Settings,
 		cleanJobs:  opts.CleanJobs,
 	}
 	s.routes()
@@ -389,8 +400,18 @@ func (s *Server) apiHandlers() map[string]http.HandlerFunc {
 		"POST /api/loginitems/group/state": s.handleLoginItemGroupState,
 		"POST /api/loginitems/analyze":     s.handleLoginItemAnalyze,
 
+		// The explanation of the running processes.
+		"POST /api/procs/analyze": s.handleProcAnalyze,
+
+		// The settings.
+		"GET /api/settings":       s.handleSettingsGet,
+		"PUT /api/settings":       s.handleSettingsSet,
+		"POST /api/settings/test": s.handleSettingsTest,
+		"POST /api/settings/docs": s.handleDocsToggle,
+
 		// Applications and cleaning.
 		"GET /api/apps":               s.handleApps,
+		"GET /api/apps/lastused":      s.handleAppLastUsed,
 		"GET /api/apps/icon":          s.handleAppIcon,
 		"GET /api/apps/{id}/residual": s.handleAppResiduals,
 		"GET /api/apps/residuals":     s.handleAppResidualsGrouped,

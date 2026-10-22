@@ -49,12 +49,13 @@
       <button class="nav-item" data-view="perm">
         <span class="nav-ico">🔐</span><span class="nav-label">权限</span>
       </button>
+      <button class="nav-item" data-view="settings">
+        <span class="nav-ico">⚙️</span><span class="nav-label">系统设置</span>
+      </button>
     </nav>
 
     <div class="sidebar-foot">
       <div class="foot-links">
-        <button class="ghost-btn" id="btn-audit">审计日志</button>
-        <a class="ghost-btn" id="btn-docs" href="/api/docs" target="_blank" rel="noopener">接口文档</a>
       </div>
       <div class="foot-right">
         <select class="theme-select" id="theme-select" title="外观">
@@ -84,6 +85,43 @@
           </div>
         </div>
         <div class="table-wrap"><table class="table" id="dash-table"></table></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-settings" hidden>
+      <div class="panel glass">
+        <div class="panel-head">
+          <h2>系统设置</h2>
+        </div>
+        <div class="settings-grid">
+          <div class="card">
+            <h3>大模型</h3>
+            <p class="muted">AI 功能（启动项风险分析、进程说明）用的模型。
+              任何兼容 OpenAI 接口的服务都行：OpenAI、DeepSeek、Moonshot、Ollama、LM Studio……
+              密钥只存在本机，mymac 不会把它发到别处。</p>
+            <label for="set-baseurl">接口地址</label>
+            <input class="input" id="set-baseurl" placeholder="https://api.openai.com/v1" autocomplete="off">
+            <label for="set-apikey">API Key</label>
+            <input class="input" id="set-apikey" type="password" placeholder="留空表示保持原样" autocomplete="off">
+            <label for="set-model">模型</label>
+            <input class="input" id="set-model" placeholder="gpt-4o-mini" autocomplete="off">
+            <div class="settings-row">
+              <button class="btn primary" id="set-save">保存</button>
+              <button class="btn" id="set-test">测试连接</button>
+              <span class="muted" id="set-status"></span>
+            </div>
+          </div>
+          <div class="card">
+            <h3>接口文档</h3>
+            <p class="muted">接口文档是一扇通向 API 的门：上面列着所有接口，还能直接发请求。
+              用不到的时候可以关掉，接口本身不受影响。</p>
+            <div class="settings-row">
+              <a class="doc-link" id="set-docs-link" href="/api/docs" target="_blank" rel="noopener">http://127.0.0.1:8888/api/docs/</a>
+              <button class="btn" id="set-docs-toggle">禁用</button>
+            </div>
+            <p class="muted" id="set-docs-state"></p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -180,15 +218,26 @@
           <h2>进程</h2>
           <div class="panel-tools">
             <input class="input" id="procs-search" type="search" placeholder="搜索进程 / PID / 用户" autocomplete="off">
+            <select class="input" id="procs-state">
+              <option value="">全部状态</option>
+              <option value="running">运行中</option>
+              <option value="sleeping">休眠</option>
+              <option value="stopped">已停止</option>
+              <option value="zombie">僵尸</option>
+            </select>
+            <input class="input" id="procs-runtime" type="number" min="0" step="1" placeholder="运行 &gt; 分钟" title="只显示运行超过这个数的进程，120 就是 2 小时" style="width:118px">
             <select class="input" id="procs-interval">
+              <option value="0" selected>不刷新</option>
               <option value="1000">1 秒</option>
-              <option value="2000" selected>2 秒</option>
+              <option value="2000">2 秒</option>
               <option value="5000">5 秒</option>
             </select>
-            <button class="btn" id="procs-pause">暂停</button>
+            <button class="btn" id="procs-refresh" title="重新读一次进程表">刷新</button>
+            <button class="btn" id="procs-analyze" title="让 AI 说明这些进程是干什么的">AI 分析</button>
             <button class="btn" id="procs-snapshot">导出快照</button>
           </div>
         </div>
+        <div class="hint">名称前面的点是<b>进程树的层级</b>：点越多，它离根进程越远。表格默认不刷新，选了刷新间隔才会自己更新。</div>
         <div class="table-wrap scroll-60"><table class="table" id="procs-table"></table></div>
       </div>
     </section>
@@ -198,6 +247,7 @@
         <div class="panel-head">
           <h2>环境变量</h2>
           <div class="panel-tools">
+            <input class="input" id="env-search" type="search" placeholder="搜索名称或值" autocomplete="off">
             <button class="btn" id="env-add">新增</button>
             <button class="btn" id="env-import">导入</button>
             <button class="btn" id="env-export">导出</button>
@@ -333,6 +383,7 @@
 
 <script src="/static/ui.js"></script>
 <script src="/static/views.js"></script>
+<script src="/static/settings.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

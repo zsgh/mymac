@@ -142,6 +142,7 @@ const portCols = [
   { key: 'connCount', label: '连接数', cls: 'num' },
   { key: 'cpuPercent', label: 'CPU%', cls: 'num' },
   { key: 'memory', label: '内存', cls: 'num' },
+  { key: 'createTime', label: '运行时长' },
   { key: 'system', label: '状态' },
   { key: '', label: '操作' },
 ];
@@ -155,6 +156,7 @@ const portAccessors = {
   connCount: p => (p.connections || []).length,
   cpuPercent: p => p.cpuPercent || 0,
   memory: p => p.memory || 0,
+  createTime: p => p.createTime || 0,
   system: p => (p.decision && p.decision.is_system ? 1 : 0),
 };
 
@@ -227,6 +229,7 @@ function renderPorts() {
         <td class="num">${p.connections.length}</td>
         <td class="num">${(p.cpuPercent || 0).toFixed(1)}</td>
         <td class="num">${fmtBytes(p.memory)}</td>
+        <td class="muted">${fmtRuntime((p.createTime || 0) / 1000)}</td>
         <td>${system ? '<span class="tag mute">系统</span>' : '<span class="tag ok">用户</span>'}</td>
         <td>
           <button class="btn tiny" data-act="detail">详情</button>

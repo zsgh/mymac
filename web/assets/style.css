@@ -176,6 +176,31 @@ a.ghost-btn { text-decoration: none; display: inline-block; }
   border-top: 1px solid rgb(var(--text) / .12);
 }
 
+/* ------------------------------------------------------------- settings */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+.settings-grid .card { display: flex; flex-direction: column; }
+.settings-grid h3 { margin: 0 0 6px; font-size: 14px; }
+.settings-grid p { margin: 0 0 10px; font-size: 12.5px; }
+.settings-grid label { margin-top: 10px; }
+.settings-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 14px;
+}
+.doc-link {
+  color: rgb(var(--accent)); text-decoration: none;
+  font-family: var(--mono); font-size: 12.5px;
+}
+.doc-link:hover { text-decoration: underline; }
+.doc-link.off { color: rgb(var(--text-3)); text-decoration: line-through; }
+
+/* The depth of a process in the tree: the dots are not part of the name. */
+.tree-depth { color: rgb(var(--text-3)); letter-spacing: -1px; }
+
 /* ------------------------------------------------------------------ main */
 .main { display: flex; flex-direction: column; gap: 14px; min-width: 0; overflow: hidden; }
 

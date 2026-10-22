@@ -17,7 +17,14 @@ import (
 var openAPIJSON = sync.OnceValues(api.JSON)
 
 // handleOpenAPI serves the OpenAPI description of the API.
+//
+// The description is a door into the API: it lists every endpoint. The user
+// can close that door in the settings.
 func (s *Server) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
+	if !s.docsEnabled() {
+		http.Error(w, "接口文档已关闭", http.StatusNotFound)
+		return
+	}
 	doc, err := openAPIJSON()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
@@ -33,6 +40,10 @@ func (s *Server) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
 // The page reads the OpenAPI document from the server, so it always shows
 // what the server actually answers.
 func (s *Server) handleAPIDocs(w http.ResponseWriter, r *http.Request) {
+	if !s.docsEnabled() {
+		http.Error(w, "接口文档已关闭", http.StatusNotFound)
+		return
+	}
 	page, ct, err := web.File("api-docs.html")
 	if err != nil {
 		http.Error(w, "assets missing", http.StatusInternalServerError)

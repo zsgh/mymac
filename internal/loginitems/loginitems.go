@@ -86,7 +86,7 @@ type Collector struct {
 	cache *List
 
 	// ai rates the items when the user asks for it.
-	ai *ai.Analyzer
+	ai ai.Provider
 	// risk holds the verdicts, per label.
 	risk map[string]ai.Assessment
 	// analyzing marks a running analysis.
@@ -100,12 +100,13 @@ type Collector struct {
 // NewCollector returns a startup item collector.
 func NewCollector() *Collector { return &Collector{} }
 
-// NewCollectorWithAI returns a collector that can rate the items with an AI.
+// NewCollectorWithAI returns a collector that can rate the items with a
+// model.
 //
-// The analyzer is optional: without it the collector still works, it just
+// The provider is optional: without it the collector still works, it just
 // cannot answer the question "which of these should I worry about".
-func NewCollectorWithAI(a *ai.Analyzer) *Collector {
-	return &Collector{ai: a, risk: map[string]ai.Assessment{}}
+func NewCollectorWithAI(p ai.Provider) *Collector {
+	return &Collector{ai: p, risk: map[string]ai.Assessment{}}
 }
 
 // Collect gathers the startup items.
@@ -649,7 +650,16 @@ func (c *Collector) Analyze(ctx context.Context) error {
 	}
 	c.analyzing = true
 	c.analyzeErr = ""
+	provider := c.ai
 	c.mu.Unlock()
+
+	client := provider()
+	if client == nil || !client.Configured() {
+		c.mu.Lock()
+		c.analyzing = false
+		c.mu.Unlock()
+		return errs.New(errs.KindInvalid, "还没有配置大模型")
+	}
 
 	items := c.Collect(ctx)
 	subjects := make([]ai.Subject, 0, len(items.Items))
@@ -672,8 +682,8 @@ func (c *Collector) Analyze(ctx context.Context) error {
 
 	go func() {
 		// The request that started the analysis is over long before the
-		// AI is; the work must not die with it.
-		res, err := c.ai.Analyze(context.WithoutCancel(ctx), subjects)
+		// model is; the work must not die with it.
+		res, err := client.Analyze(context.WithoutCancel(ctx), subjects)
 		c.mu.Lock()
 		defer c.mu.Unlock()
 		c.analyzing = false

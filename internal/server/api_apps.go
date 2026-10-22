@@ -80,6 +80,37 @@ func (s *Server) handleAppResiduals(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleAppLastUsed says when the application was opened last.
+//
+// The date comes from the Spotlight metadata of the bundle, so it is what
+// macOS itself knows about the application.
+func (s *Server) handleAppLastUsed(w http.ResponseWriter, r *http.Request) {
+	bundleID := r.URL.Query().Get("id")
+	if bundleID == "" {
+		writeError(w, http.StatusBadRequest, errs.New(errs.KindInvalid, "缺少 id"))
+		return
+	}
+	list, err := s.apps.Scan(r.Context(), false)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	for _, a := range list {
+		if a.BundleID != bundleID {
+			continue
+		}
+		out := api.AppLastUsedResponse{Path: a.Path}
+		if t, ok := apps.LastUsed(a.Path); ok {
+			out.Known = true
+			out.LastUsed = t
+			out.DaysAgo = apps.DaysAgo(t)
+		}
+		writeJSON(w, http.StatusOK, out)
+		return
+	}
+	writeError(w, http.StatusNotFound, errs.New(errs.KindNotFound, "找不到应用 %s", bundleID))
+}
+
 // handleTrashStatus reports whether the Finder automation is usable.
 func (s *Server) handleTrashStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, trash.Check(r.Context()))

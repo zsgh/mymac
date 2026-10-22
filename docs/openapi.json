@@ -52,6 +52,10 @@
     {
       "name": "docs",
       "description": "接口描述本身"
+    },
+    {
+      "name": "settings",
+      "description": "大模型与接口文档的设置"
     }
   ],
   "paths": {
@@ -121,6 +125,60 @@
         "responses": {
           "200": {
             "description": "PNG 图标"
+          },
+          "default": {
+            "description": "请求失败时的通用错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/apps/lastused": {
+      "get": {
+        "tags": [
+          "apps"
+        ],
+        "summary": "最近一次使用时间",
+        "description": "返回应用最后一次被打开的时间（来自 Spotlight 元数据）。",
+        "operationId": "getAppLastUsed",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "description": "应用的 bundle id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "com.apple.Safari"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "最近一次使用时间",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.AppLastUsedResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "找不到应用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.ErrorResponse"
+                }
+              }
+            }
           },
           "default": {
             "description": "请求失败时的通用错误",
@@ -1893,6 +1951,38 @@
         }
       }
     },
+    "/api/procs/analyze": {
+      "post": {
+        "tags": [
+          "procs"
+        ],
+        "summary": "AI 解释进程",
+        "description": "让 AI 说明正在跑的进程是干什么的。分析在后台跑，结果通过列表接口返回。",
+        "operationId": "analyzeProcesses",
+        "responses": {
+          "200": {
+            "description": "分析状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.ProcAnalyzeResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "请求失败时的通用错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/procs/stream": {
       "get": {
         "tags": [
@@ -2198,6 +2288,154 @@
         }
       }
     },
+    "/api/settings": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "读取设置",
+        "description": "返回大模型和接口文档的设置。密钥本身不会返回。",
+        "operationId": "getSettings",
+        "responses": {
+          "200": {
+            "description": "当前设置",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.SettingsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "请求失败时的通用错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "保存设置",
+        "description": "保存大模型和接口文档的设置。密钥留空表示保持原样。",
+        "operationId": "updateSettings",
+        "requestBody": {
+          "description": "新的设置",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/api.SettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "保存后的设置",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.SettingsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "请求失败时的通用错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/docs": {
+      "post": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "启用或禁用接口文档",
+        "description": "关掉之后，接口文档和描述文件不再对外提供。",
+        "operationId": "toggleAPIDocs",
+        "requestBody": {
+          "description": "目标状态",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/api.DocsToggleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "新的状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.DocsSettings"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "请求失败时的通用错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/test": {
+      "post": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "测试大模型",
+        "description": "问模型一句小话，确认接口地址、密钥和模型名是对的。",
+        "operationId": "testLLM",
+        "responses": {
+          "200": {
+            "description": "测试结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.SettingsTestResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "请求失败时的通用错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/system/overview": {
       "get": {
         "tags": [
@@ -2291,6 +2529,28 @@
         },
         "required": [
           "items"
+        ]
+      },
+      "api.AppLastUsedResponse": {
+        "type": "object",
+        "properties": {
+          "daysAgo": {
+            "type": "integer"
+          },
+          "known": {
+            "type": "boolean"
+          },
+          "lastUsed": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "known",
+          "daysAgo"
         ]
       },
       "api.AppListResponse": {
@@ -2423,6 +2683,28 @@
         "required": [
           "paths",
           "dryRun"
+        ]
+      },
+      "api.DocsSettings": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "api.DocsToggleRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
         ]
       },
       "api.DryRunResponse": {
@@ -2686,6 +2968,25 @@
           "port"
         ]
       },
+      "api.LLMSettings": {
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "type": "string"
+          },
+          "hasKey": {
+            "type": "boolean"
+          },
+          "model": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "baseUrl",
+          "model",
+          "hasKey"
+        ]
+      },
       "api.LoginItemAnalyzeResponse": {
         "type": "object",
         "properties": {
@@ -2915,6 +3216,32 @@
           "remove"
         ]
       },
+      "api.ProcAnalyzeResponse": {
+        "type": "object",
+        "properties": {
+          "analyzing": {
+            "type": "boolean"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "available",
+          "analyzing",
+          "count"
+        ]
+      },
       "api.ProcDetailResponse": {
         "type": "object",
         "properties": {
@@ -3079,6 +3406,55 @@
           "processes",
           "count",
           "at"
+        ]
+      },
+      "api.SettingsRequest": {
+        "type": "object",
+        "properties": {
+          "docs": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/api.DocsSettings"
+              }
+            ],
+            "nullable": true
+          },
+          "llm": {}
+        },
+        "required": [
+          "llm"
+        ]
+      },
+      "api.SettingsResponse": {
+        "type": "object",
+        "properties": {
+          "docs": {
+            "$ref": "#/components/schemas/api.DocsSettings"
+          },
+          "llm": {
+            "$ref": "#/components/schemas/api.LLMSettings"
+          }
+        },
+        "required": [
+          "llm",
+          "docs"
+        ]
+      },
+      "api.SettingsTestResponse": {
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
         ]
       },
       "apps.App": {
@@ -4394,6 +4770,15 @@
           "netOut": {
             "type": "integer"
           },
+          "note": {
+            "type": "string"
+          },
+          "notePurpose": {
+            "type": "string"
+          },
+          "noteRisk": {
+            "type": "string"
+          },
           "path": {
             "type": "string"
           },
@@ -4532,6 +4917,15 @@
           },
           "netOut": {
             "type": "integer"
+          },
+          "note": {
+            "type": "string"
+          },
+          "notePurpose": {
+            "type": "string"
+          },
+          "noteRisk": {
+            "type": "string"
           },
           "openFiles": {
             "type": "array",
