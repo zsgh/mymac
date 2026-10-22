@@ -9,6 +9,36 @@
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+// ------------------------------------------------------------------ conn
+//
+// The dot in the sidebar says "连接状态", so it has to mean exactly one
+// thing: the server still answers.
+//
+// It used to follow the process stream, which made it flap every time the
+// tab went to the background (hidden → red, next frame → green) and left it
+// stuck red on the views that have no stream at all.
+const conn = {
+  alive: null,
+  // mark records the state and repaints the dot.
+  mark(alive) {
+    if (conn.alive === alive) return;
+    conn.alive = alive;
+    const el = $('#conn-status');
+    if (!el) return;
+    el.classList.toggle('off', !alive);
+    el.title = alive ? '已连接' : '连接断开';
+  },
+  // check asks the server whether it is still there.
+  async check() {
+    try {
+      const res = await fetch('/api/health', { credentials: 'same-origin' });
+      conn.mark(res.ok);
+    } catch (e) {
+      conn.mark(false);
+    }
+  },
+};
+
 /** JSON fetch with unified error handling. */
 async function api(path, opts = {}) {
   const init = { method: opts.method || 'GET', headers: {}, credentials: 'same-origin' };
@@ -16,7 +46,16 @@ async function api(path, opts = {}) {
     init.headers['Content-Type'] = 'application/json';
     init.body = JSON.stringify(opts.body);
   }
-  const res = await fetch(path, init);
+  let res;
+  try {
+    res = await fetch(path, init);
+  } catch (e) {
+    // The server did not answer at all.
+    conn.mark(false);
+    throw e;
+  }
+  // Any answer counts, even an error: the server is there.
+  conn.mark(true);
   const text = await res.text();
   let data = null;
   if (text) {
@@ -161,6 +200,13 @@ function init() {
   api('/api/health').then(d => {
     $('#brand-version').textContent = 'v' + (d.version || '?');
   }).catch(() => {});
+
+  // The dot has to stay honest even when the current view does not poll
+  // anything: the permission view and the login view only fetch once, and
+  // mymac could die right after. One small request every few seconds is
+  // nothing on the loopback interface, and it keeps the state true.
+  conn.check();
+  setInterval(() => conn.check(), 5000);
 
   showView('apps');
 }
@@ -1101,14 +1147,22 @@ function restartStream() {
   const es = new EventSource(`/api/procs/stream?interval=${procState.interval}`);
   procState.es = es;
   es.onmessage = (ev) => {
-    $('#conn-status').classList.remove('off');
+    // A frame proves the stream works, but the dot is about the server as
+    // a whole: the heartbeat and the regular requests decide that. Keeping
+    // one signal avoids the dot flapping while the server is shutting down
+    // and the old stream is still draining.
     try {
       const d = JSON.parse(ev.data);
       procState.rows = d.processes || [];
       renderProcs();
     } catch { /* ignore malformed frames */ }
   };
-  es.onerror = () => { $('#conn-status').classList.add('off'); };
+  es.onerror = () => {
+    // The stream may have dropped on its own. Ask the server instead of
+    // guessing: the dot says whether the server answers, not whether this
+    // one stream is alive.
+    conn.check();
+  };
 }
 
 // renderProcStats fills the cards above the process table.
@@ -1727,7 +1781,8 @@ async function pathEditor() {
 
 document.addEventListener('DOMContentLoaded', init);
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    $('#conn-status').classList.add('off');
-  }
+  // A hidden tab is throttled by the browser, so the state can be stale.
+  // Checking right away tells the truth the moment the user comes back —
+  // the dot must not flap while the tab is in the background.
+  if (!document.hidden) conn.check();
 });
