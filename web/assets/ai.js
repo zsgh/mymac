@@ -56,8 +56,9 @@ function askAI(analysis) {
 }
 
 /** waitForAI waits until an analysis is done. */
-async function waitForAI(analysis, btn) {
+async function waitForAI(analysis, btn, reload) {
   const started = Date.now();
+  let last = -1;
   for (let i = 0; i < 300; i++) {
     await new Promise(r => setTimeout(r, 2000));
     let st = {};
@@ -68,6 +69,11 @@ async function waitForAI(analysis, btn) {
     if (st.error) {
       toast(st.error, 'err');
       return 'error';
+    }
+    // The analysis goes in batches: the verdicts show up as they come in.
+    if (st.count !== last) {
+      last = st.count;
+      if (reload) await reload();
     }
     if (!st.running) {
       return st.count > 0 ? 'done' : 'error';
@@ -94,7 +100,7 @@ async function runAI(analysis, btn, reload) {
   try {
     await api('/api/ai/analyze', { method: 'POST', body: { analysis, mode } });
     toast('AI 正在看这一页，稍等一下', 'ok');
-    const done = await waitForAI(analysis, btn);
+    const done = await waitForAI(analysis, btn, reload);
     if (done === 'error') {
       toast('AI 分析没成功', 'err');
     } else if (done === 'timeout') {

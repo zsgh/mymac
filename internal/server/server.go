@@ -172,8 +172,13 @@ func New(opts Options) (*Server, error) {
 		loginItems: opts.LoginItems,
 		settings:   opts.Settings,
 		aiCache:    ai.NewCache(),
-		runner:     &analysisRunner{running: map[string]bool{}, errors: map[string]string{}, started: map[string]time.Time{}},
-		cleanJobs:  opts.CleanJobs,
+		runner: &analysisRunner{
+			running:   map[string]bool{},
+			errors:    map[string]string{},
+			started:   map[string]time.Time{},
+			unmatched: map[string]int{},
+		},
+		cleanJobs: opts.CleanJobs,
 	}
 	s.routes()
 	return s, nil

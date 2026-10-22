@@ -337,6 +337,8 @@ type AIAnalysisState struct {
 	Model string `json:"model,omitempty"`
 	// Error explains why the last run failed, if it did.
 	Error string `json:"error,omitempty"`
+	// Unmatched counts the verdicts that could not be put on an item.
+	Unmatched int `json:"unmatched,omitempty"`
 }
 
 // AIStatusResponse holds the state of the analyses.

@@ -78,10 +78,16 @@ func (c *Client) Judge(ctx context.Context, system, question string, items []Ite
 }
 
 // ItemList renders the items for the question.
+//
+// The identifier comes first: the model is asked to copy it back, and a
+// model copies what it sees first.
 func ItemList(items []Item) string {
 	var b strings.Builder
 	for _, it := range items {
-		parts := []string{it.Name}
+		parts := []string{it.Key}
+		if it.Name != "" && it.Name != it.Key {
+			parts = append(parts, it.Name)
+		}
 		if it.Kind != "" {
 			parts = append(parts, it.Kind)
 		}

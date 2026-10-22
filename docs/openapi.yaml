@@ -33,6 +33,8 @@
           "type": "string"
         "running":
           "type": "boolean"
+        "unmatched":
+          "type": "integer"
       "required":
         - "name"
         - "running"

@@ -327,6 +327,8 @@ type analysisRunner struct {
 	errors map[string]string
 	// started is when an analysis was started.
 	started map[string]time.Time
+	// unmatched counts the verdicts that could not be placed on an item.
+	unmatched map[string]int
 }
 
 // start runs an analysis in the background.
@@ -387,23 +389,106 @@ func (s *Server) startAnalysis(ctx context.Context, name, mode string) error {
 	go func() {
 		// The request that started the analysis is over long before the
 		// model is; the work must not die with it.
-		verdicts, err := client.Judge(context.WithoutCancel(ctx), a.system, a.question(items), items)
-		s.runner.mu.Lock()
-		s.runner.running[name] = false
-		if err != nil {
-			s.runner.errors[name] = err.Error()
-		}
-		s.runner.mu.Unlock()
-		if err != nil {
-			return
-		}
-		if _, err := s.aiCache.Merge(name, verdicts, client.Model()); err != nil {
+		//
+		// The items go in batches: a long list takes minutes on a
+		// thinking model, and the verdicts show up as the batches come
+		// in instead of all at the end.
+		for _, batch := range batches(items, analysisBatchSize) {
+			verdicts, err := client.Judge(context.WithoutCancel(ctx), a.system, a.question(batch), batch)
+			if err != nil {
+				s.runner.mu.Lock()
+				s.runner.running[name] = false
+				s.runner.errors[name] = err.Error()
+				s.runner.mu.Unlock()
+				return
+			}
+			resolved, dropped := resolveVerdicts(batch, verdicts)
+			if _, err := s.aiCache.Merge(name, resolved, client.Model()); err != nil {
+				s.runner.mu.Lock()
+				s.runner.errors[name] = err.Error()
+				s.runner.mu.Unlock()
+				return
+			}
 			s.runner.mu.Lock()
-			s.runner.errors[name] = err.Error()
+			s.runner.unmatched[name] += dropped
 			s.runner.mu.Unlock()
 		}
+		s.runner.mu.Lock()
+		s.runner.running[name] = false
+		s.runner.mu.Unlock()
 	}()
 	return nil
+}
+
+// analysisBatchSize is how many items are asked about at once.
+//
+// A batch is small enough that the model answers in a minute or two, and big
+// enough that the answer is still worth the tokens.
+const analysisBatchSize = 20
+
+// batches splits the items into batches.
+func batches(items []ai.Item, size int) [][]ai.Item {
+	if size <= 0 || len(items) <= size {
+		return [][]ai.Item{items}
+	}
+	var out [][]ai.Item
+	for len(items) > size {
+		out = append(out, items[:size])
+		items = items[size:]
+	}
+	if len(items) > 0 {
+		out = append(out, items)
+	}
+	return out
+}
+
+// resolveVerdicts puts the verdicts on the items they belong to.
+//
+// The model is asked to copy the identifier of the item, but a model is a
+// model: it sometimes answers with the name instead. A verdict that cannot
+// be placed is dropped rather than shown on the wrong item.
+func resolveVerdicts(items []ai.Item, verdicts []ai.Verdict) ([]ai.Verdict, int) {
+	byKey := map[string]string{}
+	byName := map[string]string{}
+	for _, it := range items {
+		byKey[strings.ToLower(it.Key)] = it.Key
+		byName[strings.ToLower(it.Name)] = it.Key
+	}
+	out := make([]ai.Verdict, 0, len(verdicts))
+	seen := map[string]bool{}
+	dropped := 0
+	for _, v := range verdicts {
+		key := strings.ToLower(strings.TrimSpace(v.Key))
+		resolved := ""
+		switch {
+		case byKey[key] != "":
+			resolved = byKey[key]
+		case byName[key] != "":
+			resolved = byName[key]
+		default:
+			// A prefix is enough: the model sometimes cuts the name
+			// short.
+			for _, it := range items {
+				if key == "" || !strings.HasPrefix(strings.ToLower(it.Name), key) {
+					continue
+				}
+				if resolved != "" {
+					// Two items match: neither is certain.
+					resolved = ""
+					break
+				}
+				resolved = it.Key
+			}
+		}
+		if resolved == "" || seen[resolved] {
+			dropped++
+			continue
+		}
+		seen[resolved] = true
+		v.Key = resolved
+		out = append(out, v)
+	}
+	return out, dropped
 }
 
 // analysisStates returns the state of every analysis.
@@ -420,6 +505,9 @@ func (s *Server) analysisStates() []api.AIAnalysisState {
 			st.At = entry.At
 			st.Model = entry.Model
 		}
+		s.runner.mu.Lock()
+		st.Unmatched = s.runner.unmatched[a.name]
+		s.runner.mu.Unlock()
 		out = append(out, st)
 	}
 	return out

@@ -53,12 +53,13 @@ func (s *Server) aiState(name string) api.AIAnalysisState {
 	for _, st := range s.analysisStates() {
 		if st.Name == name {
 			return api.AIAnalysisState{
-				Name:    st.Name,
-				Running: st.Running,
-				Count:   st.Count,
-				At:      st.At,
-				Model:   st.Model,
-				Error:   st.Error,
+				Name:      st.Name,
+				Running:   st.Running,
+				Count:     st.Count,
+				At:        st.At,
+				Model:     st.Model,
+				Error:     st.Error,
+				Unmatched: st.Unmatched,
 			}
 		}
 	}
