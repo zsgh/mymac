@@ -66,6 +66,9 @@ type Scanner struct {
 	// measuredAt remembers when a size was last taken, so the warmer does
 	// not measure the same bundle over and over.
 	measuredAt map[string]time.Time
+	// warming marks a measurement that is running, so the scan does not
+	// start a second one.
+	warming bool
 }
 
 // AppSizes are the measured sizes of one application.
@@ -100,6 +103,42 @@ func (s *Scanner) StartSizeWarmer(ctx context.Context) {
 			}
 			s.WarmSizes(ctx)
 		}
+	}()
+}
+
+// warmMissing measures the applications whose size is not known yet.
+//
+// It runs right after a scan: the warmer only ticks every 20 seconds, and
+// waiting for that tick would leave the page showing "计算中…" for twenty
+// seconds on a cold start. The measurement itself takes a few seconds, so
+// the page is redrawn a couple of times while the numbers come in.
+func (s *Scanner) warmMissing(ctx context.Context) {
+	s.mu.Lock()
+	if s.warming {
+		s.mu.Unlock()
+		return
+	}
+	missing := false
+	for _, a := range s.cache {
+		if !a.SizeKnown {
+			missing = true
+			break
+		}
+	}
+	if !missing {
+		s.mu.Unlock()
+		return
+	}
+	s.warming = true
+	s.mu.Unlock()
+
+	go func() {
+		defer func() {
+			s.mu.Lock()
+			s.warming = false
+			s.mu.Unlock()
+		}()
+		s.WarmSizes(ctx)
 	}()
 }
 
@@ -255,6 +294,12 @@ func (s *Scanner) Scan(ctx context.Context, rescan bool) ([]*App, error) {
 	s.cache = out
 	s.cacheAt = time.Now()
 	s.mu.Unlock()
+
+	// The sizes of a fresh scan are not known yet. Measuring them right away
+	// saves the page a wait for the next warmer tick. The context of the
+	// request is dropped on purpose: it is cancelled as soon as the response
+	// is written, which would abort the measurement half way.
+	s.warmMissing(context.WithoutCancel(ctx))
 	return out, nil
 }
 

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -34,8 +35,11 @@ func (s *Server) handleApps(w http.ResponseWriter, r *http.Request) {
 	}
 	// A rescan also triggers a fresh measurement, so the sizes show up
 	// without waiting for the background warmer.
+	//
+	// The request context is dropped on purpose: it is cancelled as soon as
+	// the response is written, and that would abort the measurement.
 	if rescan {
-		go s.apps.WarmSizes(r.Context())
+		go s.apps.WarmSizes(context.WithoutCancel(r.Context()))
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"items":   items,

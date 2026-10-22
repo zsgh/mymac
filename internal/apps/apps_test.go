@@ -1,10 +1,12 @@
 package apps
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fakeApp builds a minimal app bundle in a temp directory.
@@ -269,5 +271,52 @@ func TestMatchSource(t *testing.T) {
 	}
 	if got := matchSource("unrelated", "com.example.app", "Example", "com.example."); got != "" {
 		t.Errorf("unrelated = %q", got)
+	}
+}
+
+// TestWarmMissingMeasuresRightAway covers the cold start.
+//
+// The warmer only ticks every 20 seconds. Without a measurement right after
+// the scan, the page would show "计算中…" for twenty seconds and poll the
+// server the whole time.
+func TestWarmMissingMeasuresRightAway(t *testing.T) {
+	dir := t.TempDir()
+	bundle := fakeApp(t, dir, "Example", "com.example.app", nil)
+
+	s := NewScanner()
+	s.mu.Lock()
+	s.cache = []*App{{Path: bundle, Name: "Example"}}
+	s.mu.Unlock()
+
+	s.warmMissing(context.Background())
+
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		s.mu.Lock()
+		known := s.cache[0].SizeKnown
+		s.mu.Unlock()
+		if known {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Fatal("the sizes were not measured")
+}
+
+// TestWarmMissingSkipsKnownSizes makes sure a warm start does no work.
+func TestWarmMissingSkipsKnownSizes(t *testing.T) {
+	s := NewScanner()
+	s.mu.Lock()
+	s.cache = []*App{{Path: "/tmp/example.app", Name: "Example", SizeKnown: true}}
+	s.mu.Unlock()
+
+	s.warmMissing(context.Background())
+	time.Sleep(200 * time.Millisecond)
+
+	s.mu.Lock()
+	warming := s.warming
+	s.mu.Unlock()
+	if warming {
+		t.Error("a measurement was started although every size is known")
 	}
 }

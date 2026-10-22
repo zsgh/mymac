@@ -121,6 +121,23 @@ macOS 清理 + 进程管理 + 环境变量管理工具。Go 后端，本地 Web 
       renice 同样被拒；端口 stop/kill 仍是「该进程属于系统保护范围：mymac 自身进程」
 - [x] 回归测试：`TestSignalRefusesSelf`（TERM/KILL/STOP/CONT + renice）、`TestIsSelf`
 
+### 步骤 10：应用列表一直闪
+- [x] 现象：刚打开 mymac 时，「应用卸载」列表不停地自己刷新
+- [x] 定位（冷启动实测）：大小测量**前 20 秒全部未知**，从第 21 秒开始才有数，第 27 秒才测完
+- [x] 根因 1（后端）：大小预热器 `StartSizeWarmer` 是 `time.After(20 * time.Second)` 才跑第一次，
+      冷启动时列表里的应用一个大小都没有
+- [x] 根因 2（后端）：手动「重新扫描」用 `go s.apps.WarmSizes(r.Context())`，
+      **请求一结束 context 就被取消**，测量跑到一半被掐掉（这条是 DESIGN 里写过要避开的坑，漏了）
+- [x] 根因 3（前端）：`renderApps()` 在「还有应用没测出大小」时每 1.5 秒轮询一次，
+      而且每轮都 `innerHTML` 重建**整张表**——内容一模一样，纯属闪屏
+- [x] 修法 A（后端）：`Scan()` 之后立刻 `warmMissing()` 测一遍，不用等预热器的那 20 秒
+- [x] 修法 B（后端）：后台测量一律用 `context.WithoutCancel(ctx)`，不再被请求的收尾掐断
+- [x] 修法 C（前端）：轮询时先算一个签名（应用数 + 已测出大小数 + 大小合计），
+      签名没变就**不重绘**（`appsSignature`）
+- [x] 验收（冷启动浏览器实测）：整表重建 18 次 → **5 次**，且全部集中在前 5.7 秒，之后 14 秒一次都不重绘；
+      大小测完时间 27s → 12s（剩下的是 `du` 实测 51 个 app 的固有耗时）
+- [x] 回归测试：`TestWarmMissingMeasuresRightAway`、`TestWarmMissingSkipsKnownSizes`
+
 ### 附：模块缓存被清空的一次抢救
 - [x] 现象：某次构建突然报 `go: downloading github.com/shirou/gopsutil/v4` 然后超时
 - [x] 根因：`~/go/pkg/mod/github.com` 被清空了（只剩一个 lock 文件），而机器直连 proxy.golang.org 不通

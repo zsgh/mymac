@@ -285,7 +285,7 @@ async function checkTrash() {
 
 // ------------------------------------------------------------------ apps
 
-const appState = { list: [], search: '', sort: 'name', sortDesc: false, sizeTimer: null, uninstall: new Map() };
+const appState = { list: [], search: '', sort: 'name', sortDesc: false, sizeTimer: null, sig: '', uninstall: new Map() };
 
 // appCols are the columns of the application table.
 const appCols = [
@@ -364,11 +364,34 @@ async function loadApps(rescan) {
   showLoading('#apps-table', rescan ? '正在扫描应用并统计大小…' : '加载中…');
   try {
     const d = await api('/api/apps' + (rescan ? '?rescan=1' : ''));
-    appState.list = d.items || [];
-    renderApps();
+    const items = d.items || [];
+    appState.list = items;
+    // The table is polled while the sizes are still being measured. Rebuilding
+    // it every time would replace the whole DOM for nothing, so it is only
+    // redrawn when the numbers actually moved.
+    const sig = appsSignature(items);
+    if (rescan || sig !== appState.sig) {
+      appState.sig = sig;
+      renderApps();
+    }
   } catch (e) {
     showError('#apps-table', e.message);
   }
+}
+
+// appsSignature summarises the application list.
+//
+// It changes when an application appears or disappears, or when a size has
+// been measured. Everything else the table shows is derived from these.
+function appsSignature(list) {
+  let known = 0, total = 0;
+  for (const a of list) {
+    if (a.sizeKnown) {
+      known++;
+      total += a.size || 0;
+    }
+  }
+  return [list.length, known, total].join(':');
 }
 
 function renderApps() {
