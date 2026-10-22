@@ -221,14 +221,14 @@ tools/genopenapi/   生成 docs/ 里的接口描述
 
 ## 启动程序
 
-列出并管理随系统启动的后台项：
+列出并管理随系统启动的后台项，**按程序分成一棵树**：一个应用常常带三四个启动项
+（主程序、helper、Sparkle 更新器），点程序名左边的箭头可以折叠，
+分支上的「**全部禁用**」一次关掉整组。
 
 - 来源：`launchctl print-disabled`（启用/禁用状态）、`launchctl print`（已加载的服务）、
   `~/Library/LaunchAgents`、`/Library/LaunchAgents`、`/Library/LaunchDaemons`、
   以及 System Events 的旧式登录项。
-- **按程序分组**：一个应用常常带三四个启动项（主程序、helper、Sparkle 更新器），
-  「程序」列显示它们属于哪个程序，点「**全部禁用**」一次关掉整组；
-  每一行的「禁用 / 启用」还在，可以只关其中一个。
+- **细分控制还在**：每一行都有自己的「禁用 / 启用」，只想关掉其中一个也行。
 - **禁用 / 启用**通过 `launchctl enable` / `disable` 立即生效：
   **正在运行的进程不会停**，但登录后不再启动。这个标记写在 launchd 的数据库里
   （`/var/db/com.apple.xpc.launchd/disabled.<uid>.plist`），**重启后依然有效**，
@@ -236,6 +236,18 @@ tools/genopenapi/   生成 docs/ 里的接口描述
 - **删除** LaunchAgent 会把 plist 移入废纸篓，可随时恢复。
 - 旧式登录项（System Events）不是 launchd 服务，`launchctl` 会照单全收却什么也不做，
   所以它们的「禁用」按钮是灰的，只能去「系统设置 → 通用 → 登录项」里移除。
+
+### AI 风险分析
+
+点工具栏的「**AI 风险分析**」，AI 会按「该不该被信任」给每个启动项评一个风险，
+结果落在「风险」列（高 / 中 / 低，鼠标悬停看理由），高风险的项另有一张卡片提醒。
+
+- 走的是本机的 **claude CLI**（Claude Code）：mymac 自己没有密钥也不联网，
+  启动项的标签和路径不出这台机器。
+- 只评**第三方**的启动项：系统项天生低风险，而且有几百个。
+- 分析在后台跑（45 个项约两分钟），按钮会显示「分析中…」，结果缓存在内存里。
+- 没装 claude CLI 时按钮会直接报错，不会假装分析过。
+- 想换模型用 `MYMAC_AI_MODEL=sonnet mymac`。
 
 > `sfltool dumpbtm` 在本机（macOS 26.5.2）会挂死，25 秒无任何输出，所以没有采用。
 

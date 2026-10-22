@@ -516,6 +516,15 @@ var endpoints = []Endpoint{
 			{Status: "200", Description: "处理结果", Type: LoginItemGroupStateResponse{}},
 		},
 	},
+	{
+		Method: "POST", Path: "/api/loginitems/analyze", Tag: "loginitems",
+		Summary:     "AI 风险分析",
+		Description: "让 AI 评估每个启动项的风险。分析在后台跑，结果通过列表接口返回。",
+		OperationID: "analyzeLoginItems",
+		Responses: []ResponseSpec{
+			{Status: "200", Description: "分析状态", Type: LoginItemAnalyzeResponse{}},
+		},
+	},
 
 	// -------------------------------------------------------------- apps
 	{

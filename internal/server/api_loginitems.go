@@ -68,6 +68,30 @@ func (s *Server) handleLoginItemRemove(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, api.OKResponse{OK: true})
 }
 
+// handleLoginItemAnalyze starts a risk analysis of the startup items.
+//
+// The analysis asks an AI, which takes a while, so it runs in the background
+// and the verdicts show up in the list once they are in.
+func (s *Server) handleLoginItemAnalyze(w http.ResponseWriter, r *http.Request) {
+	if err := s.loginItems.Analyze(r.Context()); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, s.analyzeStatus())
+}
+
+// analyzeStatus returns the state of the risk analysis.
+func (s *Server) analyzeStatus() api.LoginItemAnalyzeResponse {
+	st := s.loginItems.Status()
+	return api.LoginItemAnalyzeResponse{
+		Available: st.Available,
+		Analyzing: st.Analyzing,
+		Count:     st.Count,
+		At:        st.At,
+		Error:     st.Error,
+	}
+}
+
 // handleLoginItemGroupState turns every startup item of one program on or
 // off.
 //

@@ -256,6 +256,20 @@ type LoginItemGroupStateResponse struct {
 	Failed  []string `json:"failed,omitempty"`
 }
 
+// LoginItemAnalyzeResponse reports the state of the risk analysis.
+type LoginItemAnalyzeResponse struct {
+	// Available reports whether an AI can be asked at all.
+	Available bool `json:"available"`
+	// Analyzing is true while a rating is in flight.
+	Analyzing bool `json:"analyzing"`
+	// Count is the number of items that have a verdict.
+	Count int `json:"count"`
+	// At is when the last analysis finished.
+	At time.Time `json:"at,omitempty"`
+	// Error explains why the last analysis failed, if it did.
+	Error string `json:"error,omitempty"`
+}
+
 // ----------------------------------------------------------------- apps
 
 // AppListResponse lists the installed applications.

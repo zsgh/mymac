@@ -146,7 +146,37 @@ a.ghost-btn { text-decoration: none; display: inline-block; }
 .status-dot { color: rgb(var(--green)); font-size: 12px; }
 .status-dot.off { color: rgb(var(--red)); }
 
-/* ----------------------------------------------------------------- main */
+/* ------------------------------------------------------------ login tree */
+/* The startup items are a tree: one branch per program, the items below. */
+.table tr.tree-group td {
+  background: rgb(var(--text) / .035);
+  border-top: 1px solid rgb(var(--text) / var(--line-op));
+  border-bottom: 1px solid rgb(var(--text) / var(--line-op));
+}
+.table tr.tree-group:first-child td { border-top: 0; }
+.table tr.tree-group b { font-weight: 600; }
+.tree-toggle {
+  border: 0; background: transparent; color: rgb(var(--text-2));
+  font: inherit; font-size: 11px; cursor: pointer; padding: 0 4px 0 0;
+  vertical-align: middle; width: 16px; text-align: center;
+}
+.tree-toggle:hover { color: rgb(var(--text)); }
+.table tr.tree-child td:first-child { padding-left: 28px; position: relative; }
+.table tr.tree-child td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 14px; top: 0; bottom: 0;
+  border-left: 1px solid rgb(var(--text) / .12);
+}
+.table tr.tree-child td:first-child::after {
+  content: "";
+  position: absolute;
+  left: 14px; top: 50%;
+  width: 8px;
+  border-top: 1px solid rgb(var(--text) / .12);
+}
+
+/* ------------------------------------------------------------------ main */
 .main { display: flex; flex-direction: column; gap: 14px; min-width: 0; overflow: hidden; }
 
 .topbar {

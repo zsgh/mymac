@@ -280,6 +280,24 @@
         - "pid"
         - "port"
       "type": "object"
+    "api.LoginItemAnalyzeResponse":
+      "properties":
+        "analyzing":
+          "type": "boolean"
+        "at":
+          "format": "date-time"
+          "type": "string"
+        "available":
+          "type": "boolean"
+        "count":
+          "type": "integer"
+        "error":
+          "type": "string"
+      "required":
+        - "available"
+        - "analyzing"
+        - "count"
+      "type": "object"
     "api.LoginItemGroupStateRequest":
       "properties":
         "enabled":
@@ -1113,6 +1131,10 @@
           "type": "string"
         "removable":
           "type": "boolean"
+        "risk":
+          "type": "string"
+        "riskReason":
+          "type": "string"
         "source":
           "type": "string"
       "required":
@@ -2611,6 +2633,26 @@
                 "$ref": "#/components/schemas/api.ErrorResponse"
           "description": "请求失败时的通用错误"
       "summary": "启动项列表"
+      "tags":
+        - "loginitems"
+  "/api/loginitems/analyze":
+    "post":
+      "description": "让 AI 评估每个启动项的风险。分析在后台跑，结果通过列表接口返回。"
+      "operationId": "analyzeLoginItems"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.LoginItemAnalyzeResponse"
+          "description": "分析状态"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "AI 风险分析"
       "tags":
         - "loginitems"
   "/api/loginitems/group/state":

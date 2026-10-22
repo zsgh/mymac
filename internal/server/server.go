@@ -131,7 +131,7 @@ func New(opts Options) (*Server, error) {
 		opts.PortActions = ports.NewActionManager(opts.PortRules, 5*time.Second)
 	}
 	if opts.LoginItems == nil {
-		opts.LoginItems = loginitems.NewCollector()
+		opts.LoginItems = loginitems.NewCollectorWithAI(newAIAnalyzer())
 	}
 	if opts.CleanJobs == nil {
 		opts.CleanJobs = cleaner.NewJobManager()
@@ -387,6 +387,7 @@ func (s *Server) apiHandlers() map[string]http.HandlerFunc {
 		"POST /api/loginitems/state":       s.handleLoginItemState,
 		"POST /api/loginitems/remove":      s.handleLoginItemRemove,
 		"POST /api/loginitems/group/state": s.handleLoginItemGroupState,
+		"POST /api/loginitems/analyze":     s.handleLoginItemAnalyze,
 
 		// Applications and cleaning.
 		"GET /api/apps":               s.handleApps,

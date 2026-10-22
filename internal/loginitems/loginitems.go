@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"mymac/internal/ai"
 	"mymac/internal/config"
 	"mymac/internal/errs"
 	"mymac/internal/trash"
@@ -65,6 +66,11 @@ type Item struct {
 	// of them that are still enabled.
 	GroupSize int `json:"groupSize"`
 	GroupOn   int `json:"groupOn"`
+	// Risk is the verdict of the AI about the item: high, medium or low.
+	// It is empty as long as nobody asked for an analysis.
+	Risk string `json:"risk,omitempty"`
+	// RiskReason explains the verdict in one sentence.
+	RiskReason string `json:"riskReason,omitempty"`
 }
 
 // List is the whole set of startup items.
@@ -78,10 +84,29 @@ type List struct {
 type Collector struct {
 	mu    sync.Mutex
 	cache *List
+
+	// ai rates the items when the user asks for it.
+	ai *ai.Analyzer
+	// risk holds the verdicts, per label.
+	risk map[string]ai.Assessment
+	// analyzing marks a running analysis.
+	analyzing bool
+	// analyzedAt is when the last analysis finished.
+	analyzedAt time.Time
+	// analyzeErr holds the error of the last analysis, if it failed.
+	analyzeErr string
 }
 
 // NewCollector returns a startup item collector.
 func NewCollector() *Collector { return &Collector{} }
+
+// NewCollectorWithAI returns a collector that can rate the items with an AI.
+//
+// The analyzer is optional: without it the collector still works, it just
+// cannot answer the question "which of these should I worry about".
+func NewCollectorWithAI(a *ai.Analyzer) *Collector {
+	return &Collector{ai: a, risk: map[string]ai.Assessment{}}
+}
 
 // Collect gathers the startup items.
 func (c *Collector) Collect(ctx context.Context) *List {
@@ -148,6 +173,9 @@ func (c *Collector) Collect(ctx context.Context) *List {
 	// The items of one program are grouped, so the whole program can be
 	// turned off at once.
 	groupItems(out.Items, runningApps(procs))
+
+	// The verdicts of the AI, if there was an analysis.
+	c.applyRisk(out.Items)
 
 	sort.Slice(out.Items, func(i, j int) bool {
 		// The third party items come first; the system ones are noise.
@@ -576,8 +604,108 @@ type GroupResult struct {
 	Failed  []string `json:"failed,omitempty"`
 }
 
-// SetGroupEnabled enables or disables every startup item of one program.
+// AnalysisStatus tells the interface what the AI is doing.
+type AnalysisStatus struct {
+	// Available reports whether an AI can be asked at all.
+	Available bool `json:"available"`
+	// Analyzing is true while a rating is in flight.
+	Analyzing bool `json:"analyzing"`
+	// Count is the number of items that have a verdict.
+	Count int `json:"count"`
+	// At is when the last analysis finished.
+	At time.Time `json:"at,omitempty"`
+	// Error explains why the last analysis failed, if it did.
+	Error string `json:"error,omitempty"`
+}
+
+// Status returns the state of the risk analysis.
+func (c *Collector) Status() AnalysisStatus {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	st := AnalysisStatus{
+		Available: c.ai != nil,
+		Analyzing: c.analyzing,
+		Count:     len(c.risk),
+		At:        c.analyzedAt,
+		Error:     c.analyzeErr,
+	}
+	return st
+}
+
+// Analyze starts a risk analysis in the background.
 //
+// Asking an AI takes a while, so the request that starts it returns at once
+// and the verdicts show up in the list once they are in. Only the items the
+// user can see are rated: the system items are known to be low risk, and
+// there are hundreds of them.
+func (c *Collector) Analyze(ctx context.Context) error {
+	if c.ai == nil {
+		return errs.New(errs.KindUnsupported, "没有可用的 AI 分析器")
+	}
+	c.mu.Lock()
+	if c.analyzing {
+		c.mu.Unlock()
+		return nil
+	}
+	c.analyzing = true
+	c.analyzeErr = ""
+	c.mu.Unlock()
+
+	items := c.Collect(ctx)
+	subjects := make([]ai.Subject, 0, len(items.Items))
+	for _, it := range items.Items {
+		if it.IsSystem {
+			continue
+		}
+		subjects = append(subjects, ai.Subject{
+			Label:   it.Label,
+			Kind:    string(it.Kind),
+			Program: it.Program,
+			Source:  it.Source,
+			Plist:   it.PlistPath,
+			Loaded:  it.Loaded,
+			Enabled: it.Enabled,
+			PID:     it.PID,
+			Note:    it.Note,
+		})
+	}
+
+	go func() {
+		// The request that started the analysis is over long before the
+		// AI is; the work must not die with it.
+		res, err := c.ai.Analyze(context.WithoutCancel(ctx), subjects)
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		c.analyzing = false
+		c.analyzedAt = time.Now()
+		if err != nil {
+			c.analyzeErr = err.Error()
+			return
+		}
+		c.risk = make(map[string]ai.Assessment, len(res))
+		for _, a := range res {
+			c.risk[a.Label] = a
+		}
+	}()
+	return nil
+}
+
+// applyRisk copies the verdicts of the AI onto the items.
+//
+// The caller holds the lock: Collect already has it.
+func (c *Collector) applyRisk(items []Item) {
+	if len(c.risk) == 0 {
+		return
+	}
+	for i := range items {
+		if a, ok := c.risk[items[i].Label]; ok {
+			items[i].Risk = a.Risk
+			items[i].RiskReason = a.Reason
+		}
+	}
+}
+
+// SetGroupEnabled enables or disables every startup item of one program.
 // One app often brings several startup items with it, and the user thinks
 // of "the program that starts at login", not of the individual labels. The
 // group is looked up in a fresh collection, so the action always covers

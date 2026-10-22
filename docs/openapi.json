@@ -1306,6 +1306,38 @@
         }
       }
     },
+    "/api/loginitems/analyze": {
+      "post": {
+        "tags": [
+          "loginitems"
+        ],
+        "summary": "AI 风险分析",
+        "description": "让 AI 评估每个启动项的风险。分析在后台跑，结果通过列表接口返回。",
+        "operationId": "analyzeLoginItems",
+        "responses": {
+          "200": {
+            "description": "分析状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.LoginItemAnalyzeResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "请求失败时的通用错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/api.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/loginitems/group/state": {
       "post": {
         "tags": [
@@ -2654,6 +2686,32 @@
           "port"
         ]
       },
+      "api.LoginItemAnalyzeResponse": {
+        "type": "object",
+        "properties": {
+          "analyzing": {
+            "type": "boolean"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "available",
+          "analyzing",
+          "count"
+        ]
+      },
       "api.LoginItemGroupStateRequest": {
         "type": "object",
         "properties": {
@@ -3859,6 +3917,12 @@
           },
           "removable": {
             "type": "boolean"
+          },
+          "risk": {
+            "type": "string"
+          },
+          "riskReason": {
+            "type": "string"
           },
           "source": {
             "type": "string"
