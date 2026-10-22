@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"mymac/internal/api"
 	"mymac/internal/audit"
 	"mymac/internal/errs"
 	"mymac/internal/procs"
@@ -17,11 +18,11 @@ import (
 // handleProcs returns the cached process list.
 func (s *Server) handleProcs(w http.ResponseWriter, r *http.Request) {
 	snap := s.procs.Snapshot(r.Context())
-	writeJSON(w, http.StatusOK, map[string]any{
-		"processes":   snap.Processes,
-		"count":       snap.Count,
-		"collectedAt": snap.CollectedAt,
-		"durationMs":  snap.Duration,
+	writeJSON(w, http.StatusOK, api.ProcListResponse{
+		Processes:   snap.Processes,
+		Count:       snap.Count,
+		CollectedAt: snap.CollectedAt,
+		DurationMS:  snap.Duration,
 	})
 }
 
@@ -61,13 +62,13 @@ func (s *Server) handleProcsStream(w http.ResponseWriter, r *http.Request) {
 		case <-ticker.C:
 			snap := s.procs.Snapshot(r.Context())
 			overview := s.sysinfo.Collect(r.Context())
-			payload := map[string]any{
-				"processes": snap.Processes,
-				"count":     snap.Count,
-				"overview":  overview,
-				"at":        time.Now().Format(time.RFC3339),
+			payload := api.ProcStreamResponse{
+				Processes: snap.Processes,
+				Count:     snap.Count,
+				Overview:  overview,
+				At:        time.Now().Format(time.RFC3339),
 			}
-			b, err := json.Marshal(payload)
+			b, err := json.Marshal(normalize(payload))
 			if err != nil {
 				continue
 			}
@@ -89,7 +90,7 @@ func (s *Server) handleProcDetail(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"process": detail})
+	writeJSON(w, http.StatusOK, api.ProcDetailResponse{Process: detail})
 }
 
 // handleProcSignal sends a signal to a process.
@@ -99,10 +100,7 @@ func (s *Server) handleProcSignal(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errs.New(errs.KindInvalid, "非法的 pid"))
 		return
 	}
-	var body struct {
-		Sig       string `json:"sig"`
-		Confirmed bool   `json:"confirmed"`
-	}
+	var body api.ProcSignalRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -133,7 +131,7 @@ func (s *Server) handleProcSignal(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit.Log(audit.Entry{Action: audit.ActionProcSignal, Target: strconv.Itoa(pid),
 		Detail: "已发送 " + sig, Result: audit.ResultOK})
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "pid": pid, "sig": sig})
+	writeJSON(w, http.StatusOK, api.ProcSignalResponse{OK: true, PID: pid, Sig: sig})
 }
 
 // handleProcRenice changes the priority of a process.
@@ -143,10 +141,7 @@ func (s *Server) handleProcRenice(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errs.New(errs.KindInvalid, "非法的 pid"))
 		return
 	}
-	var body struct {
-		Nice      int  `json:"nice"`
-		Confirmed bool `json:"confirmed"`
-	}
+	var body api.ProcReniceRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -159,7 +154,7 @@ func (s *Server) handleProcRenice(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit.Log(audit.Entry{Action: audit.ActionProcRenice, Target: strconv.Itoa(pid),
 		Detail: fmt.Sprintf("nice=%d", body.Nice), Result: audit.ResultOK})
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "pid": pid, "nice": body.Nice})
+	writeJSON(w, http.StatusOK, api.ProcReniceResponse{OK: true, PID: pid, Nice: body.Nice})
 }
 
 // handleProcSample captures a thread stack sample.
@@ -171,10 +166,10 @@ func (s *Server) handleProcSample(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := procs.Sample(r.Context(), pid)
 	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]any{"output": out, "error": errs.As(err).Message})
+		writeJSON(w, http.StatusOK, api.ProcSampleResponse{Output: out, Error: errs.As(err).Message})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"output": out})
+	writeJSON(w, http.StatusOK, api.ProcSampleResponse{Output: out})
 }
 
 // handleProcFiles lists the open files of a process.
@@ -189,7 +184,7 @@ func (s *Server) handleProcFiles(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"files": files})
+	writeJSON(w, http.StatusOK, api.ProcFilesResponse{Files: files})
 }
 
 // handleOverview returns the system summary.
@@ -209,20 +204,18 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 
 // handleAlertRules returns the configured alert thresholds.
 func (s *Server) handleAlertRules(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"items": s.alerter.Rules()})
+	writeJSON(w, http.StatusOK, api.AlertRulesResponse{Items: s.alerter.Rules()})
 }
 
 // handleAlertRulesUpdate replaces the alert thresholds.
 func (s *Server) handleAlertRulesUpdate(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Items []procs.AlertRule `json:"items"`
-	}
+	var body api.AlertRulesRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	s.alerter.SetRules(body.Items)
-	writeJSON(w, http.StatusOK, map[string]any{"items": s.alerter.Rules()})
+	writeJSON(w, http.StatusOK, api.AlertRulesResponse{Items: s.alerter.Rules()})
 }
 
 // ensure sysinfo stays referenced.

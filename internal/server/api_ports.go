@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"mymac/internal/api"
 	"mymac/internal/audit"
 	"mymac/internal/errs"
 	"mymac/internal/ports"
@@ -38,9 +39,7 @@ func (s *Server) handlePortAction(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errs.New(errs.KindInvalid, "非法的 PID"))
 		return
 	}
-	var body struct {
-		CreateTime int64 `json:"createTime"`
-	}
+	var body api.PortActionRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -65,7 +64,10 @@ func (s *Server) handlePortAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !result.OK {
-		writeJSON(w, status, map[string]any{"ok": false, "error": errs.New(errs.KindInternal, "%s", result.Message)})
+		writeJSON(w, status, api.PortActionErrorResponse{
+			OK:    false,
+			Error: *errs.New(errs.KindInternal, "%s", result.Message),
+		})
 		return
 	}
 	writeJSON(w, http.StatusOK, &result)

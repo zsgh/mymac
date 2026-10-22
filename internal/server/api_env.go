@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"mymac/internal/api"
 	"mymac/internal/audit"
 	"mymac/internal/envs"
 	"mymac/internal/errs"
@@ -21,11 +22,7 @@ func (s *Server) handleEnvVars(w http.ResponseWriter, r *http.Request) {
 
 // handleEnvCreate adds a variable.
 func (s *Server) handleEnvCreate(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Name  string `json:"name"`
-		Value string `json:"value"`
-		Note  string `json:"note"`
-	}
+	var body api.EnvVarCreateRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -42,11 +39,7 @@ func (s *Server) handleEnvCreate(w http.ResponseWriter, r *http.Request) {
 // handleEnvUpdate changes a variable.
 func (s *Server) handleEnvUpdate(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
-	var body struct {
-		Value   *string `json:"value"`
-		Note    *string `json:"note"`
-		Enabled *bool   `json:"enabled"`
-	}
+	var body api.EnvVarUpdateRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -66,7 +59,7 @@ func (s *Server) handleEnvDelete(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "name": name})
+	writeJSON(w, http.StatusOK, api.EnvVarDeleteResponse{OK: true, Name: name})
 }
 
 // handleEnvApply re-pushes a variable to the launchd layer.
@@ -92,10 +85,7 @@ func (s *Server) handleEnvPathGet(w http.ResponseWriter, r *http.Request) {
 
 // handleEnvPathSet stores the PATH fragments.
 func (s *Server) handleEnvPathSet(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Prepend []string `json:"prepend"`
-		Append  []string `json:"append"`
-	}
+	var body api.EnvPathSetRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -133,9 +123,7 @@ func (s *Server) handleEnvExport(w http.ResponseWriter, r *http.Request) {
 
 // handleEnvImportPreview shows what an import would change.
 func (s *Server) handleEnvImportPreview(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Content string `json:"content"`
-	}
+	var body api.EnvImportRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -145,10 +133,10 @@ func (s *Server) handleEnvImportPreview(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"add":    filterChanges(changes, "add"),
-		"update": filterChanges(changes, "update"),
-		"all":    changes,
+	writeJSON(w, http.StatusOK, api.EnvImportPreviewResponse{
+		Add:    filterChanges(changes, "add"),
+		Update: filterChanges(changes, "update"),
+		All:    changes,
 	})
 }
 
@@ -164,9 +152,7 @@ func filterChanges(changes []envs.ImportChange, action string) []envs.ImportChan
 
 // handleEnvImport applies an import.
 func (s *Server) handleEnvImport(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Content string `json:"content"`
-	}
+	var body api.EnvImportRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -176,7 +162,7 @@ func (s *Server) handleEnvImport(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"changes": changes, "applied": len(changes)})
+	writeJSON(w, http.StatusOK, api.EnvImportResponse{Changes: changes, Applied: len(changes)})
 }
 
 // handleEnvBackups lists the stored backups.
@@ -186,14 +172,12 @@ func (s *Server) handleEnvBackups(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+	writeJSON(w, http.StatusOK, api.EnvBackupsResponse{Items: items})
 }
 
 // handleEnvRestore restores one backup.
 func (s *Server) handleEnvRestore(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Name string `json:"name"`
-	}
+	var body api.EnvRestoreRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -205,7 +189,7 @@ func (s *Server) handleEnvRestore(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit.Log(audit.Entry{Action: audit.ActionEnvRestore, Target: path,
 		Detail: "从备份恢复: " + body.Name, Result: audit.ResultOK})
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "path": path})
+	writeJSON(w, http.StatusOK, api.EnvRestoreResponse{OK: true, Path: path})
 }
 
 // handleEnvStatus reports the health of every layer.
@@ -215,13 +199,12 @@ func (s *Server) handleEnvStatus(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	summary := map[string]any{
-		"marker":   snap.Marker,
-		"agent":    snap.Agent,
-		"managed":  len(snap.Managed),
-		"warnings": snap.Warnings,
-	}
-	writeJSON(w, http.StatusOK, summary)
+	writeJSON(w, http.StatusOK, api.EnvStatusResponse{
+		Marker:   snap.Marker,
+		Agent:    snap.Agent,
+		Managed:  len(snap.Managed),
+		Warnings: snap.Warnings,
+	})
 }
 
 // handleEnvMarkerRepair rewrites the managed block in ~/.zshenv.
@@ -240,7 +223,7 @@ func (s *Server) handleEnvMarkerRemove(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	writeJSON(w, http.StatusOK, api.OKResponse{OK: true})
 }
 
 // handleEnvAgentInstall creates the login launch agent.
@@ -249,7 +232,7 @@ func (s *Server) handleEnvAgentInstall(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	writeJSON(w, http.StatusOK, api.OKResponse{OK: true})
 }
 
 // handleEnvAgentUninstall removes the login launch agent.
@@ -258,7 +241,7 @@ func (s *Server) handleEnvAgentUninstall(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	writeJSON(w, http.StatusOK, api.OKResponse{OK: true})
 }
 
 // ensure the errs package stays referenced even if handlers change.

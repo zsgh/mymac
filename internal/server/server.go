@@ -16,11 +16,13 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"reflect"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
+	"mymac/internal/api"
 	"mymac/internal/apps"
 	"mymac/internal/audit"
 	"mymac/internal/cleaner"
@@ -316,99 +318,92 @@ func (s *Server) routes() {
 	// Static assets carry no data, so they stay unauthenticated.
 	s.mux.Handle("GET /static/", http.StripPrefix("/static/", s.staticHandler()))
 
-	api := func(pattern string, h http.HandlerFunc) {
-		s.mux.Handle("GET "+pattern, s.withGuards(h))
-		s.mux.Handle("POST "+pattern, s.withGuards(h))
-		s.mux.Handle("PUT "+pattern, s.withGuards(h))
-		s.mux.Handle("PATCH "+pattern, s.withGuards(h))
-		s.mux.Handle("DELETE "+pattern, s.withGuards(h))
+	// The API routes come from the endpoint table, so the router and the
+	// OpenAPI description always list the same routes. A route without a
+	// handler is a programming error, and the server says so instead of
+	// answering 404 for a documented endpoint.
+	handlers := s.apiHandlers()
+	for _, ep := range api.Endpoints() {
+		key := ep.Method + " " + ep.Path
+		h, ok := handlers[key]
+		if !ok {
+			panic("mymac: no handler for " + key)
+		}
+		s.mux.Handle(key, s.withGuards(h))
 	}
-
-	api("/api/health", s.handleHealth)
-	api("/api/perm/status", s.handlePermStatus)
-	api("/api/perm/open", s.handlePermOpen)
-	api("/api/audit", s.handleAudit)
-
-	// Environment variables.
-	s.envRoutes()
-
-	// Processes and system overview.
-	s.mux.Handle("GET /api/procs", s.withGuards(http.HandlerFunc(s.handleProcs)))
-	s.mux.Handle("GET /api/procs/stream", s.withGuards(http.HandlerFunc(s.handleProcsStream)))
-	s.mux.Handle("GET /api/procs/{pid}", s.withGuards(http.HandlerFunc(s.handleProcDetail)))
-	s.mux.Handle("GET /api/procs/{pid}/sample", s.withGuards(http.HandlerFunc(s.handleProcSample)))
-	s.mux.Handle("GET /api/procs/{pid}/files", s.withGuards(http.HandlerFunc(s.handleProcFiles)))
-	s.mux.Handle("POST /api/procs/{pid}/signal", s.withGuards(http.HandlerFunc(s.handleProcSignal)))
-	s.mux.Handle("POST /api/procs/{pid}/renice", s.withGuards(http.HandlerFunc(s.handleProcRenice)))
-	s.mux.Handle("GET /api/system/overview", s.withGuards(http.HandlerFunc(s.handleOverview)))
-
-	// Port management.
-	s.mux.Handle("GET /api/ports/snapshot", s.withGuards(http.HandlerFunc(s.handlePortsSnapshot)))
-	s.mux.Handle("POST /api/ports/process/{pid}/{action}", s.withGuards(http.HandlerFunc(s.handlePortAction)))
-	s.mux.Handle("GET /api/ports/rules", s.withGuards(http.HandlerFunc(s.handlePortRules)))
-	s.mux.Handle("POST /api/ports/rules/reload", s.withGuards(http.HandlerFunc(s.handlePortRulesReload)))
-	s.mux.Handle("POST /api/ports/rules/override", s.withGuards(http.HandlerFunc(s.handlePortRulesOverride)))
-
-	// Startup items.
-	s.mux.Handle("GET /api/loginitems", s.withGuards(http.HandlerFunc(s.handleLoginItems)))
-	s.mux.Handle("POST /api/loginitems/state", s.withGuards(http.HandlerFunc(s.handleLoginItemState)))
-	s.mux.Handle("POST /api/loginitems/remove", s.withGuards(http.HandlerFunc(s.handleLoginItemRemove)))
-	s.mux.Handle("GET /api/procs/alerts", s.withGuards(http.HandlerFunc(s.handleAlertRules)))
-	s.mux.Handle("POST /api/procs/alerts", s.withGuards(http.HandlerFunc(s.handleAlertRulesUpdate)))
-
-	// Applications and cleaning.
-	s.mux.Handle("GET /api/apps", s.withGuards(http.HandlerFunc(s.handleApps)))
-	s.mux.Handle("GET /api/apps/icon", s.withGuards(http.HandlerFunc(s.handleAppIcon)))
-	s.mux.Handle("GET /api/apps/{id}/residual", s.withGuards(http.HandlerFunc(s.handleAppResiduals)))
-	s.mux.Handle("GET /api/apps/residuals", s.withGuards(http.HandlerFunc(s.handleAppResidualsGrouped)))
-	s.mux.Handle("POST /api/apps/uninstall", s.withGuards(http.HandlerFunc(s.handleAppUninstall)))
-	s.mux.Handle("GET /api/trash/status", s.withGuards(http.HandlerFunc(s.handleTrashStatus)))
-	s.mux.Handle("GET /api/clean/scan", s.withGuards(http.HandlerFunc(s.handleCleanScan)))
-	s.mux.Handle("GET /api/clean/large", s.withGuards(http.HandlerFunc(s.handleCleanLarge)))
-	s.mux.Handle("GET /api/clean/duplicates", s.withGuards(http.HandlerFunc(s.handleCleanDuplicates)))
-	s.mux.Handle("GET /api/clean/job", s.withGuards(http.HandlerFunc(s.handleCleanJob)))
-	s.mux.Handle("POST /api/clean/execute", s.withGuards(http.HandlerFunc(s.handleCleanExecute)))
 }
 
-// envRoutes registers the environment variable endpoints.
+// apiHandlers returns the handler of every API route.
 //
-// The routes are registered per method because the same path carries
-// different verbs with different bodies.
-func (s *Server) envRoutes() {
-	g := func(pattern string, h http.HandlerFunc) {
-		s.mux.Handle("GET "+pattern, s.withGuards(h))
+// The keys are the "METHOD /path" form of the endpoint table.
+func (s *Server) apiHandlers() map[string]http.HandlerFunc {
+	return map[string]http.HandlerFunc{
+		// System.
+		"GET /api/health":      s.handleHealth,
+		"GET /api/perm/status": s.handlePermStatus,
+		"POST /api/perm/open":  s.handlePermOpen,
+		"GET /api/audit":       s.handleAudit,
+
+		// Environment variables.
+		"GET /api/env/vars":               s.handleEnvVars,
+		"POST /api/env/vars":              s.handleEnvCreate,
+		"PATCH /api/env/vars/{name}":      s.handleEnvUpdate,
+		"DELETE /api/env/vars/{name}":     s.handleEnvDelete,
+		"POST /api/env/vars/{name}/apply": s.handleEnvApply,
+		"GET /api/env/path":               s.handleEnvPathGet,
+		"POST /api/env/path":              s.handleEnvPathSet,
+		"GET /api/env/export":             s.handleEnvExport,
+		"POST /api/env/import/preview":    s.handleEnvImportPreview,
+		"POST /api/env/import":            s.handleEnvImport,
+		"GET /api/env/backups":            s.handleEnvBackups,
+		"POST /api/env/restore":           s.handleEnvRestore,
+		"GET /api/env/status":             s.handleEnvStatus,
+		"POST /api/env/marker/repair":     s.handleEnvMarkerRepair,
+		"POST /api/env/marker/remove":     s.handleEnvMarkerRemove,
+		"POST /api/env/agent/install":     s.handleEnvAgentInstall,
+		"POST /api/env/agent/uninstall":   s.handleEnvAgentUninstall,
+
+		// Processes and system overview.
+		"GET /api/procs":               s.handleProcs,
+		"GET /api/procs/stream":        s.handleProcsStream,
+		"GET /api/procs/{pid}":         s.handleProcDetail,
+		"GET /api/procs/{pid}/sample":  s.handleProcSample,
+		"GET /api/procs/{pid}/files":   s.handleProcFiles,
+		"POST /api/procs/{pid}/signal": s.handleProcSignal,
+		"POST /api/procs/{pid}/renice": s.handleProcRenice,
+		"GET /api/system/overview":     s.handleOverview,
+		"GET /api/procs/alerts":        s.handleAlertRules,
+		"POST /api/procs/alerts":       s.handleAlertRulesUpdate,
+
+		// Port management.
+		"GET /api/ports/snapshot":                s.handlePortsSnapshot,
+		"POST /api/ports/process/{pid}/{action}": s.handlePortAction,
+		"GET /api/ports/rules":                   s.handlePortRules,
+		"POST /api/ports/rules/reload":           s.handlePortRulesReload,
+		"POST /api/ports/rules/override":         s.handlePortRulesOverride,
+
+		// Startup items.
+		"GET /api/loginitems":         s.handleLoginItems,
+		"POST /api/loginitems/state":  s.handleLoginItemState,
+		"POST /api/loginitems/remove": s.handleLoginItemRemove,
+
+		// Applications and cleaning.
+		"GET /api/apps":               s.handleApps,
+		"GET /api/apps/icon":          s.handleAppIcon,
+		"GET /api/apps/{id}/residual": s.handleAppResiduals,
+		"GET /api/apps/residuals":     s.handleAppResidualsGrouped,
+		"POST /api/apps/uninstall":    s.handleAppUninstall,
+		"GET /api/trash/status":       s.handleTrashStatus,
+		"GET /api/clean/scan":         s.handleCleanScan,
+		"GET /api/clean/large":        s.handleCleanLarge,
+		"GET /api/clean/duplicates":   s.handleCleanDuplicates,
+		"GET /api/clean/job":          s.handleCleanJob,
+		"POST /api/clean/execute":     s.handleCleanExecute,
+
+		// The description of the API itself.
+		"GET /api/openapi.json": s.handleOpenAPI,
+		"GET /api/docs":         s.handleAPIDocs,
 	}
-	p := func(pattern string, h http.HandlerFunc) {
-		s.mux.Handle("POST "+pattern, s.withGuards(h))
-	}
-	patch := func(pattern string, h http.HandlerFunc) {
-		s.mux.Handle("PATCH "+pattern, s.withGuards(h))
-	}
-	del := func(pattern string, h http.HandlerFunc) {
-		s.mux.Handle("DELETE "+pattern, s.withGuards(h))
-	}
-
-	g("/api/env/vars", s.handleEnvVars)
-	p("/api/env/vars", s.handleEnvCreate)
-	patch("/api/env/vars/{name}", s.handleEnvUpdate)
-	del("/api/env/vars/{name}", s.handleEnvDelete)
-	p("/api/env/vars/{name}/apply", s.handleEnvApply)
-
-	g("/api/env/path", s.handleEnvPathGet)
-	p("/api/env/path", s.handleEnvPathSet)
-
-	g("/api/env/export", s.handleEnvExport)
-	p("/api/env/import/preview", s.handleEnvImportPreview)
-	p("/api/env/import", s.handleEnvImport)
-
-	g("/api/env/backups", s.handleEnvBackups)
-	p("/api/env/restore", s.handleEnvRestore)
-
-	g("/api/env/status", s.handleEnvStatus)
-	p("/api/env/marker/repair", s.handleEnvMarkerRepair)
-	p("/api/env/marker/remove", s.handleEnvMarkerRemove)
-	p("/api/env/agent/install", s.handleEnvAgentInstall)
-	p("/api/env/agent/uninstall", s.handleEnvAgentUninstall)
 }
 
 // staticHandler serves the embedded assets.
@@ -448,24 +443,22 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 // ------------------------------------------------------------------ handlers
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
-		"version": config.Version,
-		"uptime":  time.Since(startTime).Round(time.Second).String(),
-		"pid":     os.Getpid(),
-		"port":    s.port,
+	writeJSON(w, http.StatusOK, api.HealthResponse{
+		Version: config.Version,
+		Uptime:  time.Since(startTime).Round(time.Second).String(),
+		PID:     os.Getpid(),
+		Port:    s.port,
 	})
 }
 
 var startTime = time.Now()
 
 func (s *Server) handlePermStatus(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"items": perm.All(r.Context())})
+	writeJSON(w, http.StatusOK, api.PermStatusResponse{Items: perm.All(r.Context())})
 }
 
 func (s *Server) handlePermOpen(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Target perm.Target `json:"target"`
-	}
+	var body api.PermOpenRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -475,7 +468,7 @@ func (s *Server) handlePermOpen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit.Record(audit.ActionPermGrant, string(body.Target), "opened system settings", audit.ResultOK)
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	writeJSON(w, http.StatusOK, api.OKResponse{OK: true})
 }
 
 func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {
@@ -488,7 +481,7 @@ func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, errs.Wrap(err, errs.KindInternal, "读取审计日志失败"))
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+	writeJSON(w, http.StatusOK, api.AuditResponse{Items: items})
 }
 
 // ------------------------------------------------------------------- helpers
@@ -508,9 +501,57 @@ func decodeJSON(r *http.Request, v any) error {
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
-	if err := json.NewEncoder(w).Encode(v); err != nil {
+	if err := json.NewEncoder(w).Encode(normalize(v)); err != nil {
 		// The response is already committed; nothing useful left to do.
 		return
+	}
+}
+
+// normalize turns the nil lists and maps of an answer into empty ones.
+//
+// A field that holds a list should always hold a list: a null makes every
+// client check for it, and the description of the API says the field is an
+// array. Pointers are left alone, because a nil pointer means "there is
+// nothing here", which is an answer in itself.
+func normalize(v any) any {
+	if v == nil {
+		return v
+	}
+	rv := reflect.ValueOf(v)
+	out := reflect.New(rv.Type()).Elem()
+	out.Set(rv)
+	normalizeValue(out)
+	return out.Interface()
+}
+
+// normalizeValue walks a value and fills the empty lists and maps.
+func normalizeValue(v reflect.Value) {
+	switch v.Kind() {
+	case reflect.Pointer:
+		if !v.IsNil() {
+			normalizeValue(v.Elem())
+		}
+	case reflect.Slice:
+		if v.IsNil() {
+			v.Set(reflect.MakeSlice(v.Type(), 0, 0))
+			return
+		}
+		for i := 0; i < v.Len(); i++ {
+			normalizeValue(v.Index(i))
+		}
+	case reflect.Map:
+		if v.IsNil() {
+			v.Set(reflect.MakeMap(v.Type()))
+		}
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			f := v.Field(i)
+			if !f.CanSet() {
+				// Unexported field: it is not part of the answer.
+				continue
+			}
+			normalizeValue(f)
+		}
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"mymac/internal/api"
 	"mymac/internal/audit"
 	"mymac/internal/errs"
 	"mymac/internal/loginitems"
@@ -16,10 +17,7 @@ func (s *Server) handleLoginItems(w http.ResponseWriter, r *http.Request) {
 
 // handleLoginItemState enables or disables a startup item.
 func (s *Server) handleLoginItemState(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Label   string `json:"label"`
-		Enabled bool   `json:"enabled"`
-	}
+	var body api.LoginItemStateRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -38,14 +36,16 @@ func (s *Server) handleLoginItemState(w http.ResponseWriter, r *http.Request) {
 		Detail: state,
 		Result: audit.ResultOK,
 	})
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "label": body.Label, "enabled": body.Enabled})
+	writeJSON(w, http.StatusOK, api.LoginItemStateResponse{
+		OK:      true,
+		Label:   body.Label,
+		Enabled: body.Enabled,
+	})
 }
 
 // handleLoginItemRemove moves a LaunchAgent definition to the Trash.
 func (s *Server) handleLoginItemRemove(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Path string `json:"path"`
-	}
+	var body api.LoginItemRemoveRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -64,5 +64,5 @@ func (s *Server) handleLoginItemRemove(w http.ResponseWriter, r *http.Request) {
 		Detail: "启动项已移入废纸篓",
 		Result: audit.ResultOK,
 	})
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	writeJSON(w, http.StatusOK, api.OKResponse{OK: true})
 }

@@ -1,0 +1,3142 @@
+"components":
+  "schemas":
+    "api.AlertRulesRequest":
+      "properties":
+        "items":
+          "items":
+            "$ref": "#/components/schemas/procs.AlertRule"
+          "type": "array"
+      "required":
+        - "items"
+      "type": "object"
+    "api.AlertRulesResponse":
+      "properties":
+        "items":
+          "items":
+            "$ref": "#/components/schemas/procs.AlertRule"
+          "type": "array"
+      "required":
+        - "items"
+      "type": "object"
+    "api.AppListResponse":
+      "properties":
+        "count":
+          "type": "integer"
+        "items":
+          "items":
+            "allOf":
+              - "$ref": "#/components/schemas/apps.App"
+            "nullable": true
+          "type": "array"
+        "pending":
+          "type": "integer"
+      "required":
+        - "items"
+        - "count"
+        - "pending"
+      "type": "object"
+    "api.AppResidualResponse":
+      "properties":
+        "app":
+          "allOf":
+            - "$ref": "#/components/schemas/apps.App"
+          "nullable": true
+        "count":
+          "type": "integer"
+        "items":
+          "items":
+            "$ref": "#/components/schemas/apps.Residual"
+          "type": "array"
+      "required":
+        - "items"
+        - "count"
+      "type": "object"
+    "api.AppResidualsResponse":
+      "properties":
+        "count":
+          "type": "integer"
+        "groups":
+          "items":
+            "$ref": "#/components/schemas/apps.Group"
+          "type": "array"
+      "required":
+        - "groups"
+        - "count"
+      "type": "object"
+    "api.AppUninstallRequest":
+      "properties":
+        "bundleID":
+          "type": "string"
+        "bundleIDs":
+          "items":
+            "type": "string"
+          "type": "array"
+        "dryRun":
+          "type": "boolean"
+        "paths":
+          "items":
+            "type": "string"
+          "type": "array"
+      "required":
+        - "bundleID"
+        - "bundleIDs"
+        - "paths"
+        - "dryRun"
+      "type": "object"
+    "api.AuditResponse":
+      "properties":
+        "items":
+          "items":
+            "$ref": "#/components/schemas/audit.Entry"
+          "type": "array"
+      "required":
+        - "items"
+      "type": "object"
+    "api.CleanExecuteRequest":
+      "properties":
+        "dryRun":
+          "type": "boolean"
+        "paths":
+          "items":
+            "type": "string"
+          "type": "array"
+      "required":
+        - "paths"
+        - "dryRun"
+      "type": "object"
+    "api.DryRunResponse":
+      "properties":
+        "dryRun":
+          "type": "boolean"
+        "failed":
+          "items":
+            "$ref": "#/components/schemas/trash.FailedItem"
+          "type": "array"
+        "moved":
+          "items":
+            "type": "string"
+          "type": "array"
+        "planned":
+          "items":
+            "type": "string"
+          "type": "array"
+      "required":
+        - "dryRun"
+        - "moved"
+        - "failed"
+        - "planned"
+      "type": "object"
+    "api.EnvBackupsResponse":
+      "properties":
+        "items":
+          "items":
+            "$ref": "#/components/schemas/envs.Backup"
+          "type": "array"
+      "required":
+        - "items"
+      "type": "object"
+    "api.EnvImportPreviewResponse":
+      "properties":
+        "add":
+          "items":
+            "$ref": "#/components/schemas/envs.ImportChange"
+          "type": "array"
+        "all":
+          "items":
+            "$ref": "#/components/schemas/envs.ImportChange"
+          "type": "array"
+        "update":
+          "items":
+            "$ref": "#/components/schemas/envs.ImportChange"
+          "type": "array"
+      "required":
+        - "add"
+        - "update"
+        - "all"
+      "type": "object"
+    "api.EnvImportRequest":
+      "properties":
+        "content":
+          "type": "string"
+      "required":
+        - "content"
+      "type": "object"
+    "api.EnvImportResponse":
+      "properties":
+        "applied":
+          "type": "integer"
+        "changes":
+          "items":
+            "$ref": "#/components/schemas/envs.ImportChange"
+          "type": "array"
+      "required":
+        - "changes"
+        - "applied"
+      "type": "object"
+    "api.EnvPathSetRequest":
+      "properties":
+        "append":
+          "items":
+            "type": "string"
+          "type": "array"
+        "prepend":
+          "items":
+            "type": "string"
+          "type": "array"
+      "required":
+        - "prepend"
+        - "append"
+      "type": "object"
+    "api.EnvRestoreRequest":
+      "properties":
+        "name":
+          "type": "string"
+      "required":
+        - "name"
+      "type": "object"
+    "api.EnvRestoreResponse":
+      "properties":
+        "ok":
+          "type": "boolean"
+        "path":
+          "type": "string"
+      "required":
+        - "ok"
+        - "path"
+      "type": "object"
+    "api.EnvStatusResponse":
+      "properties":
+        "agent":
+          "$ref": "#/components/schemas/envs.AgentState"
+        "managed":
+          "type": "integer"
+        "marker":
+          "$ref": "#/components/schemas/envs.MarkerReport"
+        "warnings":
+          "items":
+            "type": "string"
+          "type": "array"
+      "required":
+        - "marker"
+        - "agent"
+        - "managed"
+        - "warnings"
+      "type": "object"
+    "api.EnvVarCreateRequest":
+      "properties":
+        "name":
+          "type": "string"
+        "note":
+          "type": "string"
+        "value":
+          "type": "string"
+      "required":
+        - "name"
+        - "value"
+        - "note"
+      "type": "object"
+    "api.EnvVarDeleteResponse":
+      "properties":
+        "name":
+          "type": "string"
+        "ok":
+          "type": "boolean"
+      "required":
+        - "ok"
+        - "name"
+      "type": "object"
+    "api.EnvVarUpdateRequest":
+      "properties":
+        "enabled":
+          "nullable": true
+          "type": "boolean"
+        "note":
+          "nullable": true
+          "type": "string"
+        "value":
+          "nullable": true
+          "type": "string"
+      "type": "object"
+    "api.ErrorResponse":
+      "properties":
+        "error":
+          "$ref": "#/components/schemas/errs.Error"
+      "required":
+        - "error"
+      "type": "object"
+    "api.HealthResponse":
+      "properties":
+        "pid":
+          "type": "integer"
+        "port":
+          "type": "integer"
+        "uptime":
+          "type": "string"
+        "version":
+          "type": "string"
+      "required":
+        - "version"
+        - "uptime"
+        - "pid"
+        - "port"
+      "type": "object"
+    "api.LoginItemRemoveRequest":
+      "properties":
+        "path":
+          "type": "string"
+      "required":
+        - "path"
+      "type": "object"
+    "api.LoginItemStateRequest":
+      "properties":
+        "enabled":
+          "type": "boolean"
+        "label":
+          "type": "string"
+      "required":
+        - "label"
+        - "enabled"
+      "type": "object"
+    "api.LoginItemStateResponse":
+      "properties":
+        "enabled":
+          "type": "boolean"
+        "label":
+          "type": "string"
+        "ok":
+          "type": "boolean"
+      "required":
+        - "ok"
+        - "label"
+        - "enabled"
+      "type": "object"
+    "api.OKResponse":
+      "properties":
+        "ok":
+          "type": "boolean"
+      "required":
+        - "ok"
+      "type": "object"
+    "api.OpenAPIResponse":
+      "properties":
+        "info":
+          "type": "object"
+        "openapi":
+          "type": "string"
+        "paths":
+          "type": "object"
+      "required":
+        - "openapi"
+        - "info"
+        - "paths"
+      "type": "object"
+    "api.PermOpenRequest":
+      "properties":
+        "target":
+          "$ref": "#/components/schemas/perm.Target"
+      "required":
+        - "target"
+      "type": "object"
+    "api.PermStatusResponse":
+      "properties":
+        "items":
+          "items":
+            "$ref": "#/components/schemas/perm.Status"
+          "type": "array"
+      "required":
+        - "items"
+      "type": "object"
+    "api.PortActionErrorResponse":
+      "properties":
+        "error":
+          "$ref": "#/components/schemas/errs.Error"
+        "ok":
+          "type": "boolean"
+      "required":
+        - "ok"
+        - "error"
+      "type": "object"
+    "api.PortActionRequest":
+      "properties":
+        "createTime":
+          "type": "integer"
+      "required":
+        - "createTime"
+      "type": "object"
+    "api.PortRulesOverrideRequest":
+      "properties":
+        "kind":
+          "type": "string"
+        "mode":
+          "type": "string"
+        "remove":
+          "type": "boolean"
+        "value":
+          "type": "string"
+      "required":
+        - "mode"
+        - "kind"
+        - "value"
+        - "remove"
+      "type": "object"
+    "api.ProcDetailResponse":
+      "properties":
+        "process":
+          "allOf":
+            - "$ref": "#/components/schemas/procs.ProcessDetail"
+          "nullable": true
+      "type": "object"
+    "api.ProcFilesResponse":
+      "properties":
+        "files":
+          "items":
+            "type": "string"
+          "type": "array"
+      "required":
+        - "files"
+      "type": "object"
+    "api.ProcListResponse":
+      "properties":
+        "collectedAt":
+          "format": "date-time"
+          "type": "string"
+        "count":
+          "type": "integer"
+        "durationMs":
+          "type": "integer"
+        "processes":
+          "items":
+            "$ref": "#/components/schemas/procs.Process"
+          "type": "array"
+      "required":
+        - "processes"
+        - "count"
+        - "collectedAt"
+        - "durationMs"
+      "type": "object"
+    "api.ProcReniceRequest":
+      "properties":
+        "confirmed":
+          "type": "boolean"
+        "nice":
+          "type": "integer"
+      "required":
+        - "nice"
+        - "confirmed"
+      "type": "object"
+    "api.ProcReniceResponse":
+      "properties":
+        "nice":
+          "type": "integer"
+        "ok":
+          "type": "boolean"
+        "pid":
+          "type": "integer"
+      "required":
+        - "ok"
+        - "pid"
+        - "nice"
+      "type": "object"
+    "api.ProcSampleResponse":
+      "properties":
+        "error":
+          "type": "string"
+        "output":
+          "type": "string"
+      "required":
+        - "output"
+      "type": "object"
+    "api.ProcSignalRequest":
+      "properties":
+        "confirmed":
+          "type": "boolean"
+        "sig":
+          "type": "string"
+      "required":
+        - "sig"
+        - "confirmed"
+      "type": "object"
+    "api.ProcSignalResponse":
+      "properties":
+        "ok":
+          "type": "boolean"
+        "pid":
+          "type": "integer"
+        "sig":
+          "type": "string"
+      "required":
+        - "ok"
+        - "pid"
+        - "sig"
+      "type": "object"
+    "api.ProcStreamResponse":
+      "properties":
+        "at":
+          "type": "string"
+        "count":
+          "type": "integer"
+        "overview":
+          "allOf":
+            - "$ref": "#/components/schemas/sysinfo.Overview"
+          "nullable": true
+        "processes":
+          "items":
+            "$ref": "#/components/schemas/procs.Process"
+          "type": "array"
+      "required":
+        - "processes"
+        - "count"
+        - "at"
+      "type": "object"
+    "apps.App":
+      "properties":
+        "bundleId":
+          "type": "string"
+        "bundleSize":
+          "type": "integer"
+        "dataSize":
+          "type": "integer"
+        "developer":
+          "type": "string"
+        "exeSize":
+          "type": "integer"
+        "icon":
+          "type": "string"
+        "iconFailed":
+          "type": "boolean"
+        "isApple":
+          "type": "boolean"
+        "isIOS":
+          "type": "boolean"
+        "isMAS":
+          "type": "boolean"
+        "isSystem":
+          "type": "boolean"
+        "name":
+          "type": "string"
+        "path":
+          "type": "string"
+        "running":
+          "type": "boolean"
+        "size":
+          "type": "integer"
+        "sizeKnown":
+          "type": "boolean"
+        "teamId":
+          "type": "string"
+        "version":
+          "type": "string"
+      "required":
+        - "bundleId"
+        - "name"
+        - "version"
+        - "path"
+        - "bundleSize"
+        - "exeSize"
+        - "dataSize"
+        - "size"
+        - "sizeKnown"
+        - "isMAS"
+        - "isIOS"
+        - "isApple"
+        - "isSystem"
+        - "running"
+      "type": "object"
+    "apps.Group":
+      "properties":
+        "bundleId":
+          "type": "string"
+        "bundleSize":
+          "type": "integer"
+        "isSystem":
+          "type": "boolean"
+        "items":
+          "items":
+            "$ref": "#/components/schemas/apps.Residual"
+          "type": "array"
+        "name":
+          "type": "string"
+        "path":
+          "type": "string"
+        "running":
+          "type": "boolean"
+        "version":
+          "type": "string"
+      "required":
+        - "bundleId"
+        - "name"
+        - "path"
+        - "bundleSize"
+        - "running"
+        - "isSystem"
+        - "items"
+      "type": "object"
+    "apps.Residual":
+      "properties":
+        "kind":
+          "type": "string"
+        "matchKind":
+          "type": "string"
+        "matchedBy":
+          "type": "string"
+        "note":
+          "type": "string"
+        "path":
+          "type": "string"
+        "risk":
+          "type": "string"
+        "selected":
+          "type": "boolean"
+        "size":
+          "type": "integer"
+      "required":
+        - "path"
+        - "kind"
+        - "size"
+        - "matchKind"
+        - "matchedBy"
+        - "risk"
+        - "selected"
+      "type": "object"
+    "audit.Entry":
+      "properties":
+        "action":
+          "type": "string"
+        "detail":
+          "type": "string"
+        "elapsedMs":
+          "type": "integer"
+        "pid":
+          "type": "integer"
+        "result":
+          "type": "string"
+        "target":
+          "type": "string"
+        "ts":
+          "format": "date-time"
+          "type": "string"
+      "required":
+        - "ts"
+        - "action"
+        - "target"
+        - "result"
+        - "pid"
+      "type": "object"
+    "cleaner.DuplicateGroup":
+      "properties":
+        "hash":
+          "type": "string"
+        "links":
+          "additionalProperties":
+            "type": "integer"
+          "type": "object"
+        "paths":
+          "items":
+            "type": "string"
+          "type": "array"
+        "shared":
+          "type": "boolean"
+        "size":
+          "type": "integer"
+      "required":
+        - "size"
+        - "hash"
+        - "paths"
+      "type": "object"
+    "cleaner.Item":
+      "properties":
+        "category":
+          "type": "string"
+        "count":
+          "type": "integer"
+        "name":
+          "type": "string"
+        "note":
+          "type": "string"
+        "path":
+          "type": "string"
+        "readOnly":
+          "type": "boolean"
+        "readable":
+          "type": "boolean"
+        "selected":
+          "type": "boolean"
+        "size":
+          "type": "integer"
+      "required":
+        - "path"
+        - "name"
+        - "category"
+        - "size"
+        - "selected"
+        - "readable"
+        - "readOnly"
+      "type": "object"
+    "cleaner.Job":
+      "properties":
+        "elapsedMs":
+          "type": "integer"
+        "error":
+          "type": "string"
+        "files":
+          "items":
+            "$ref": "#/components/schemas/cleaner.LargeFile"
+          "type": "array"
+        "found":
+          "type": "integer"
+        "groups":
+          "items":
+            "$ref": "#/components/schemas/cleaner.DuplicateGroup"
+          "type": "array"
+        "id":
+          "type": "string"
+        "kind":
+          "type": "string"
+        "message":
+          "type": "string"
+        "minSize":
+          "type": "integer"
+        "scanned":
+          "type": "integer"
+        "startedAt":
+          "format": "date-time"
+          "type": "string"
+        "state":
+          "type": "string"
+      "required":
+        - "id"
+        - "kind"
+        - "state"
+        - "scanned"
+        - "found"
+        - "minSize"
+        - "startedAt"
+        - "elapsedMs"
+      "type": "object"
+    "cleaner.LargeFile":
+      "properties":
+        "mod":
+          "type": "integer"
+        "path":
+          "type": "string"
+        "size":
+          "type": "integer"
+      "required":
+        - "path"
+        - "size"
+        - "mod"
+      "type": "object"
+    "cleaner.ScanResult":
+      "properties":
+        "items":
+          "items":
+            "$ref": "#/components/schemas/cleaner.Item"
+          "type": "array"
+        "scannedAt":
+          "format": "date-time"
+          "type": "string"
+        "summary":
+          "$ref": "#/components/schemas/cleaner.Summary"
+      "required":
+        - "items"
+        - "summary"
+        - "scannedAt"
+      "type": "object"
+    "cleaner.Summary":
+      "properties":
+        "count":
+          "type": "integer"
+        "devCaches":
+          "type": "integer"
+        "total":
+          "type": "integer"
+        "userCaches":
+          "type": "integer"
+        "userLogs":
+          "type": "integer"
+        "warnings":
+          "items":
+            "type": "string"
+          "type": "array"
+      "required":
+        - "userCaches"
+        - "userLogs"
+        - "devCaches"
+        - "total"
+        - "count"
+        - "warnings"
+      "type": "object"
+    "envs.AgentState":
+      "properties":
+        "detail":
+          "type": "string"
+        "installed":
+          "type": "boolean"
+        "loaded":
+          "type": "boolean"
+        "path":
+          "type": "string"
+      "required":
+        - "installed"
+        - "loaded"
+        - "path"
+      "type": "object"
+    "envs.Backup":
+      "properties":
+        "created":
+          "format": "date-time"
+          "type": "string"
+        "name":
+          "type": "string"
+        "original":
+          "type": "string"
+        "path":
+          "type": "string"
+        "size":
+          "type": "integer"
+      "required":
+        - "name"
+        - "path"
+        - "size"
+        - "created"
+        - "original"
+      "type": "object"
+    "envs.Conflict":
+      "properties":
+        "note":
+          "type": "string"
+        "source":
+          "type": "string"
+        "value":
+          "type": "string"
+        "wins":
+          "type": "boolean"
+      "required":
+        - "source"
+        - "value"
+        - "wins"
+      "type": "object"
+    "envs.ImportChange":
+      "properties":
+        "action":
+          "type": "string"
+        "name":
+          "type": "string"
+        "oldValue":
+          "type": "string"
+        "value":
+          "type": "string"
+      "required":
+        - "name"
+        - "value"
+        - "action"
+      "type": "object"
+    "envs.LaunchdVar":
+      "properties":
+        "name":
+          "type": "string"
+        "value":
+          "type": "string"
+      "required":
+        - "name"
+        - "value"
+      "type": "object"
+    "envs.ManagedVar":
+      "properties":
+        "conflicts":
+          "items":
+            "$ref": "#/components/schemas/envs.Conflict"
+          "type": "array"
+        "createdAt":
+          "format": "date-time"
+          "type": "string"
+        "enabled":
+          "type": "boolean"
+        "lastApplied":
+          "format": "date-time"
+          "type": "string"
+        "launchdOk":
+          "type": "boolean"
+        "launchdSet":
+          "type": "boolean"
+        "launchdValue":
+          "type": "string"
+        "name":
+          "type": "string"
+        "needsRestart":
+          "items":
+            "type": "string"
+          "type": "array"
+        "note":
+          "type": "string"
+        "scope":
+          "$ref": "#/components/schemas/envs.Scope"
+        "sensitive":
+          "type": "boolean"
+        "shellApplied":
+          "type": "boolean"
+        "updatedAt":
+          "format": "date-time"
+          "type": "string"
+        "value":
+          "type": "string"
+      "required":
+        - "name"
+        - "value"
+        - "enabled"
+        - "scope"
+        - "sensitive"
+        - "createdAt"
+        - "updatedAt"
+        - "shellApplied"
+        - "launchdValue"
+        - "launchdSet"
+        - "launchdOk"
+        - "conflicts"
+      "type": "object"
+    "envs.MarkerReport":
+      "properties":
+        "detail":
+          "type": "string"
+        "file":
+          "type": "string"
+        "line":
+          "type": "integer"
+        "state":
+          "$ref": "#/components/schemas/envs.MarkerState"
+      "required":
+        - "file"
+        - "state"
+      "type": "object"
+    "envs.MarkerState":
+      "enum":
+        - "ok"
+        - "missing"
+        - "damaged"
+        - "conflict"
+      "type": "string"
+    "envs.PathView":
+      "properties":
+        "append":
+          "items":
+            "type": "string"
+          "type": "array"
+        "current":
+          "type": "string"
+        "enabled":
+          "type": "boolean"
+        "merged":
+          "type": "string"
+        "missing":
+          "items":
+            "type": "string"
+          "type": "array"
+        "note":
+          "type": "string"
+        "prepend":
+          "items":
+            "type": "string"
+          "type": "array"
+      "required":
+        - "enabled"
+        - "prepend"
+        - "append"
+        - "current"
+        - "merged"
+        - "missing"
+        - "note"
+      "type": "object"
+    "envs.Scope":
+      "enum":
+        - "user"
+        - "path"
+      "type": "string"
+    "envs.SelfVar":
+      "properties":
+        "name":
+          "type": "string"
+        "value":
+          "type": "string"
+      "required":
+        - "name"
+        - "value"
+      "type": "object"
+    "envs.ShellExport":
+      "properties":
+        "file":
+          "type": "string"
+        "line":
+          "type": "integer"
+        "name":
+          "type": "string"
+        "value":
+          "type": "string"
+      "required":
+        - "name"
+        - "value"
+        - "file"
+        - "line"
+      "type": "object"
+    "envs.Snapshot":
+      "properties":
+        "agent":
+          "$ref": "#/components/schemas/envs.AgentState"
+        "launchd":
+          "items":
+            "$ref": "#/components/schemas/envs.LaunchdVar"
+          "type": "array"
+        "managed":
+          "items":
+            "$ref": "#/components/schemas/envs.ManagedVar"
+          "type": "array"
+        "marker":
+          "$ref": "#/components/schemas/envs.MarkerReport"
+        "self":
+          "items":
+            "$ref": "#/components/schemas/envs.SelfVar"
+          "type": "array"
+        "shellFiles":
+          "items":
+            "$ref": "#/components/schemas/envs.ShellExport"
+          "type": "array"
+        "warnings":
+          "items":
+            "type": "string"
+          "type": "array"
+      "required":
+        - "managed"
+        - "launchd"
+        - "shellFiles"
+        - "self"
+        - "warnings"
+        - "agent"
+        - "marker"
+      "type": "object"
+    "errs.Error":
+      "properties":
+        "detail":
+          "type": "string"
+        "kind":
+          "$ref": "#/components/schemas/errs.Kind"
+        "message":
+          "type": "string"
+      "required":
+        - "kind"
+        - "message"
+      "type": "object"
+    "errs.Kind":
+      "enum":
+        - "unauthorized"
+        - "permission_denied"
+        - "sip_protected"
+        - "process_gone"
+        - "file_busy"
+        - "not_found"
+        - "invalid_request"
+        - "unsupported"
+        - "internal"
+      "type": "string"
+    "loginitems.Item":
+      "properties":
+        "args":
+          "items":
+            "type": "string"
+          "type": "array"
+        "developer":
+          "type": "string"
+        "enabled":
+          "type": "boolean"
+        "isSystem":
+          "type": "boolean"
+        "kind":
+          "$ref": "#/components/schemas/loginitems.Kind"
+        "label":
+          "type": "string"
+        "loaded":
+          "type": "boolean"
+        "needsAdmin":
+          "type": "boolean"
+        "note":
+          "type": "string"
+        "pid":
+          "type": "integer"
+        "plistPath":
+          "type": "string"
+        "program":
+          "type": "string"
+        "removable":
+          "type": "boolean"
+        "source":
+          "type": "string"
+      "required":
+        - "label"
+        - "kind"
+        - "enabled"
+        - "loaded"
+        - "pid"
+        - "source"
+        - "removable"
+        - "needsAdmin"
+        - "isSystem"
+      "type": "object"
+    "loginitems.Kind":
+      "enum":
+        - "launchAgent"
+        - "launchDaemon"
+        - "loginItem"
+        - "service"
+      "type": "string"
+    "loginitems.List":
+      "properties":
+        "collectedAt":
+          "format": "date-time"
+          "type": "string"
+        "items":
+          "items":
+            "$ref": "#/components/schemas/loginitems.Item"
+          "type": "array"
+        "warnings":
+          "items":
+            "type": "string"
+          "type": "array"
+      "required":
+        - "items"
+        - "collectedAt"
+        - "warnings"
+      "type": "object"
+    "perm.State":
+      "enum":
+        - "granted"
+        - "denied"
+        - "unknown"
+        - "not_applicable"
+      "type": "string"
+    "perm.Status":
+      "properties":
+        "detail":
+          "type": "string"
+        "granted":
+          "type": "boolean"
+        "howTo":
+          "type": "string"
+        "label":
+          "type": "string"
+        "probePath":
+          "type": "string"
+        "state":
+          "$ref": "#/components/schemas/perm.State"
+        "target":
+          "$ref": "#/components/schemas/perm.Target"
+      "required":
+        - "target"
+        - "label"
+        - "state"
+        - "howTo"
+        - "granted"
+      "type": "object"
+    "perm.Target":
+      "enum":
+        - "full_disk_access"
+        - "automation"
+        - "admin"
+      "type": "string"
+    "ports.ActionResult":
+      "properties":
+        "action":
+          "type": "string"
+        "elapsed_ms":
+          "type": "integer"
+        "message":
+          "type": "string"
+        "needs_kill":
+          "type": "boolean"
+        "new_pid":
+          "type": "integer"
+        "ok":
+          "type": "boolean"
+        "pid":
+          "type": "integer"
+        "process_name":
+          "type": "string"
+        "timed_out":
+          "type": "boolean"
+      "required":
+        - "ok"
+        - "message"
+        - "pid"
+        - "action"
+      "type": "object"
+    "ports.Connection":
+      "properties":
+        "address":
+          "type": "string"
+        "isListen":
+          "type": "boolean"
+        "port":
+          "type": "integer"
+        "protocol":
+          "type": "string"
+        "remoteAddress":
+          "type": "string"
+        "remotePort":
+          "type": "integer"
+        "state":
+          "type": "string"
+      "required":
+        - "port"
+        - "address"
+        - "remoteAddress"
+        - "remotePort"
+        - "protocol"
+        - "state"
+        - "isListen"
+      "type": "object"
+    "ports.Process":
+      "properties":
+        "cmdline":
+          "items":
+            "type": "string"
+          "type": "array"
+        "connections":
+          "items":
+            "$ref": "#/components/schemas/ports.Connection"
+          "type": "array"
+        "cpuPercent":
+          "type": "number"
+        "createTime":
+          "type": "integer"
+        "cwd":
+          "type": "string"
+        "decision":
+          "$ref": "#/components/schemas/rules.Decision"
+        "error":
+          "type": "string"
+        "exe":
+          "type": "string"
+        "fds":
+          "type": "integer"
+        "listenCount":
+          "type": "integer"
+        "memory":
+          "type": "integer"
+        "name":
+          "type": "string"
+        "permissionDenied":
+          "type": "boolean"
+        "pid":
+          "type": "integer"
+        "portDecision":
+          "$ref": "#/components/schemas/rules.Decision"
+        "ppid":
+          "type": "integer"
+        "self":
+          "type": "boolean"
+        "state":
+          "type": "string"
+        "systemCheck":
+          "type": "string"
+        "threads":
+          "type": "integer"
+        "username":
+          "type": "string"
+        "vms":
+          "type": "integer"
+      "required":
+        - "pid"
+        - "ppid"
+        - "name"
+        - "exe"
+        - "username"
+        - "state"
+        - "createTime"
+        - "cpuPercent"
+        - "memory"
+        - "vms"
+        - "threads"
+        - "fds"
+        - "connections"
+        - "listenCount"
+        - "decision"
+        - "portDecision"
+      "type": "object"
+    "ports.Snapshot":
+      "properties":
+        "collectedAt":
+          "format": "date-time"
+          "type": "string"
+        "durationMs":
+          "type": "integer"
+        "error":
+          "type": "string"
+        "hiddenCount":
+          "type": "integer"
+        "processes":
+          "items":
+            "$ref": "#/components/schemas/ports.Process"
+          "type": "array"
+        "stats":
+          "$ref": "#/components/schemas/ports.Stats"
+      "required":
+        - "processes"
+        - "hiddenCount"
+        - "collectedAt"
+        - "durationMs"
+        - "stats"
+      "type": "object"
+    "ports.Stats":
+      "properties":
+        "hidden":
+          "type": "integer"
+        "listen":
+          "type": "integer"
+        "system":
+          "type": "integer"
+        "total":
+          "type": "integer"
+        "whitelisted":
+          "type": "integer"
+      "required":
+        - "total"
+        - "listen"
+        - "system"
+        - "hidden"
+        - "whitelisted"
+      "type": "object"
+    "procs.AlertRule":
+      "properties":
+        "duration":
+          "format": "int64"
+          "type": "integer"
+        "enabled":
+          "type": "boolean"
+        "id":
+          "type": "string"
+        "label":
+          "type": "string"
+        "metric":
+          "type": "string"
+        "threshold":
+          "type": "number"
+      "required":
+        - "id"
+        - "label"
+        - "metric"
+        - "threshold"
+        - "duration"
+        - "enabled"
+      "type": "object"
+    "procs.EnvVar":
+      "properties":
+        "name":
+          "type": "string"
+        "sensitive":
+          "type": "boolean"
+        "value":
+          "type": "string"
+      "required":
+        - "name"
+        - "value"
+        - "sensitive"
+      "type": "object"
+    "procs.Port":
+      "properties":
+        "fd":
+          "type": "string"
+        "local":
+          "type": "string"
+        "proto":
+          "type": "string"
+        "remote":
+          "type": "string"
+        "state":
+          "type": "string"
+      "required":
+        - "proto"
+        - "local"
+        - "remote"
+        - "state"
+        - "fd"
+      "type": "object"
+    "procs.Process":
+      "properties":
+        "appId":
+          "type": "string"
+        "appName":
+          "type": "string"
+        "appPath":
+          "type": "string"
+        "apple":
+          "type": "boolean"
+        "arch":
+          "type": "string"
+        "args":
+          "items":
+            "type": "string"
+          "type": "array"
+        "children":
+          "items":
+            "type": "integer"
+          "type": "array"
+        "cpu":
+          "type": "number"
+        "depth":
+          "type": "integer"
+        "fds":
+          "type": "integer"
+        "footprint":
+          "type": "integer"
+        "group":
+          "type": "string"
+        "mem":
+          "type": "integer"
+        "name":
+          "type": "string"
+        "netIn":
+          "type": "integer"
+        "netOut":
+          "type": "integer"
+        "path":
+          "type": "string"
+        "pid":
+          "type": "integer"
+        "ports":
+          "items":
+            "$ref": "#/components/schemas/procs.Port"
+          "type": "array"
+        "ppid":
+          "type": "integer"
+        "protected":
+          "type": "boolean"
+        "rosetta":
+          "type": "boolean"
+        "self":
+          "type": "boolean"
+        "signer":
+          "type": "string"
+        "startTime":
+          "type": "integer"
+        "state":
+          "$ref": "#/components/schemas/procs.State"
+        "status":
+          "type": "string"
+        "threads":
+          "type": "integer"
+        "uid":
+          "type": "integer"
+        "user":
+          "type": "string"
+      "required":
+        - "pid"
+        - "ppid"
+        - "uid"
+        - "user"
+        - "name"
+        - "path"
+        - "cpu"
+        - "mem"
+        - "threads"
+        - "fds"
+        - "status"
+        - "state"
+        - "startTime"
+        - "arch"
+        - "rosetta"
+        - "protected"
+        - "self"
+        - "apple"
+        - "netIn"
+        - "netOut"
+        - "depth"
+      "type": "object"
+    "procs.ProcessDetail":
+      "properties":
+        "appId":
+          "type": "string"
+        "appName":
+          "type": "string"
+        "appPath":
+          "type": "string"
+        "apple":
+          "type": "boolean"
+        "arch":
+          "type": "string"
+        "args":
+          "items":
+            "type": "string"
+          "type": "array"
+        "children":
+          "items":
+            "type": "integer"
+          "type": "array"
+        "cpu":
+          "type": "number"
+        "depth":
+          "type": "integer"
+        "envError":
+          "type": "string"
+        "environment":
+          "items":
+            "$ref": "#/components/schemas/procs.EnvVar"
+          "type": "array"
+        "fds":
+          "type": "integer"
+        "footprint":
+          "type": "integer"
+        "footprintDetail":
+          "type": "string"
+        "group":
+          "type": "string"
+        "mem":
+          "type": "integer"
+        "name":
+          "type": "string"
+        "netIn":
+          "type": "integer"
+        "netOut":
+          "type": "integer"
+        "openFiles":
+          "items":
+            "type": "string"
+          "type": "array"
+        "path":
+          "type": "string"
+        "pid":
+          "type": "integer"
+        "ports":
+          "items":
+            "$ref": "#/components/schemas/procs.Port"
+          "type": "array"
+        "ppid":
+          "type": "integer"
+        "protected":
+          "type": "boolean"
+        "rosetta":
+          "type": "boolean"
+        "self":
+          "type": "boolean"
+        "signer":
+          "type": "string"
+        "startTime":
+          "type": "integer"
+        "state":
+          "$ref": "#/components/schemas/procs.State"
+        "status":
+          "type": "string"
+        "threads":
+          "type": "integer"
+        "uid":
+          "type": "integer"
+        "user":
+          "type": "string"
+      "required":
+        - "pid"
+        - "ppid"
+        - "uid"
+        - "user"
+        - "name"
+        - "path"
+        - "cpu"
+        - "mem"
+        - "threads"
+        - "fds"
+        - "status"
+        - "state"
+        - "startTime"
+        - "arch"
+        - "rosetta"
+        - "protected"
+        - "self"
+        - "apple"
+        - "netIn"
+        - "netOut"
+        - "depth"
+      "type": "object"
+    "procs.State":
+      "enum":
+        - "running"
+        - "sleeping"
+        - "stopped"
+        - "zombie"
+        - ""
+      "type": "string"
+    "rules.Decision":
+      "properties":
+        "is_system":
+          "type": "boolean"
+        "system_check":
+          "type": "string"
+        "system_reason":
+          "type": "string"
+        "system_rule":
+          "allOf":
+            - "$ref": "#/components/schemas/rules.RuleRef"
+          "nullable": true
+        "whitelisted":
+          "type": "boolean"
+      "required":
+        - "is_system"
+        - "system_check"
+      "type": "object"
+    "rules.PortRange":
+      "properties":
+        "from":
+          "type": "integer"
+        "to":
+          "type": "integer"
+      "required":
+        - "from"
+        - "to"
+      "type": "object"
+    "rules.RuleRef":
+      "properties":
+        "kind":
+          "type": "string"
+        "source":
+          "type": "string"
+        "value":
+          "type": "string"
+      "required":
+        - "source"
+        - "kind"
+        - "value"
+      "type": "object"
+    "rules.RuleSet":
+      "properties":
+        "name":
+          "type": "string"
+        "paths":
+          "items":
+            "type": "string"
+          "type": "array"
+        "pids":
+          "items":
+            "type": "integer"
+          "type": "array"
+        "port_ranges":
+          "items":
+            "$ref": "#/components/schemas/rules.PortRange"
+          "type": "array"
+        "ports":
+          "items":
+            "type": "integer"
+          "type": "array"
+        "processes":
+          "items":
+            "type": "string"
+          "type": "array"
+        "users":
+          "items":
+            "type": "string"
+          "type": "array"
+      "type": "object"
+    "rules.Summary":
+      "properties":
+        "builtin":
+          "$ref": "#/components/schemas/rules.RuleSet"
+        "loadError":
+          "type": "string"
+        "platform":
+          "type": "string"
+        "user":
+          "$ref": "#/components/schemas/rules.UserRules"
+        "userPath":
+          "type": "string"
+        "verified":
+          "type": "boolean"
+      "required":
+        - "builtin"
+        - "user"
+        - "userPath"
+        - "platform"
+        - "verified"
+      "type": "object"
+    "rules.UserRules":
+      "properties":
+        "blacklist":
+          "$ref": "#/components/schemas/rules.RuleSet"
+        "whitelist":
+          "$ref": "#/components/schemas/rules.RuleSet"
+      "required":
+        - "whitelist"
+        - "blacklist"
+      "type": "object"
+    "sysinfo.Overview":
+      "properties":
+        "battery":
+          "nullable": true
+          "type": "integer"
+        "charging":
+          "type": "boolean"
+        "cpuCount":
+          "type": "integer"
+        "cpuPercent":
+          "type": "number"
+        "cycleCount":
+          "type": "integer"
+        "diskFree":
+          "type": "integer"
+        "diskPercent":
+          "type": "number"
+        "diskTotal":
+          "type": "integer"
+        "diskUsed":
+          "type": "integer"
+        "loadAvg":
+          "type": "string"
+        "memPercent":
+          "type": "number"
+        "memPressure":
+          "type": "string"
+        "memTotal":
+          "type": "integer"
+        "memUsed":
+          "type": "integer"
+        "netIn":
+          "type": "integer"
+        "netOut":
+          "type": "integer"
+        "onBattery":
+          "type": "boolean"
+        "portCount":
+          "type": "integer"
+        "procCount":
+          "type": "integer"
+        "uptime":
+          "type": "string"
+      "required":
+        - "cpuPercent"
+        - "cpuCount"
+        - "memTotal"
+        - "memUsed"
+        - "memPercent"
+        - "memPressure"
+        - "diskTotal"
+        - "diskFree"
+        - "diskUsed"
+        - "diskPercent"
+        - "netIn"
+        - "netOut"
+        - "charging"
+        - "onBattery"
+        - "cycleCount"
+        - "uptime"
+        - "loadAvg"
+        - "procCount"
+        - "portCount"
+      "type": "object"
+    "trash.FailedItem":
+      "properties":
+        "kind":
+          "type": "string"
+        "path":
+          "type": "string"
+        "reason":
+          "type": "string"
+      "required":
+        - "path"
+        - "reason"
+        - "kind"
+      "type": "object"
+    "trash.Result":
+      "properties":
+        "failed":
+          "items":
+            "$ref": "#/components/schemas/trash.FailedItem"
+          "type": "array"
+        "method":
+          "additionalProperties":
+            "type": "string"
+          "type": "object"
+        "moved":
+          "items":
+            "type": "string"
+          "type": "array"
+        "note":
+          "type": "string"
+      "required":
+        - "moved"
+        - "failed"
+        - "method"
+      "type": "object"
+    "trash.Status":
+      "properties":
+        "available":
+          "type": "boolean"
+        "detail":
+          "type": "string"
+        "hint":
+          "type": "string"
+      "required":
+        - "available"
+        - "detail"
+      "type": "object"
+"info":
+  "description": "mymac 的本地 HTTP 接口。服务只监听回环地址，每个请求都要通过 Host、Origin 与 Sec-Fetch-Site 三道检查。"
+  "license":
+    "name": "MIT"
+  "title": "mymac"
+  "version": "0.1.0"
+"openapi": "3.0.3"
+"paths":
+  "/api/apps":
+    "get":
+      "description": "返回已安装的应用。体积较小的应用需要后台测量，pending 是还没量完的数量。"
+      "operationId": "listApps"
+      "parameters":
+        - "description": "为 1 时重新扫描"
+          "example": 0
+          "in": "query"
+          "name": "rescan"
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.AppListResponse"
+          "description": "应用列表"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "已安装应用"
+      "tags":
+        - "apps"
+  "/api/apps/icon":
+    "get":
+      "description": "按 bundle id 返回应用图标。只有扫描到的应用才会被返回。"
+      "operationId": "getAppIcon"
+      "parameters":
+        - "description": "应用的 bundle id"
+          "example": "com.apple.Safari"
+          "in": "query"
+          "name": "id"
+          "required": true
+          "schema":
+            "type": "string"
+      "responses":
+        "200":
+          "description": "PNG 图标"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "应用图标"
+      "tags":
+        - "apps"
+  "/api/apps/residuals":
+    "get":
+      "description": "一次返回多个应用的残留文件，按应用分组。"
+      "operationId": "getAppResidualsGrouped"
+      "parameters":
+        - "description": "逗号分隔的 bundle id 列表"
+          "example": "com.apple.Safari"
+          "in": "query"
+          "name": "ids"
+          "schema":
+            "type": "string"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.AppResidualsResponse"
+          "description": "按应用分组的残留文件"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "批量应用残留"
+      "tags":
+        - "apps"
+  "/api/apps/uninstall":
+    "post":
+      "description": "把选中的残留文件移入废纸篓。dryRun 为真时只给出计划，不动文件。"
+      "operationId": "uninstallApp"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.AppUninstallRequest"
+        "description": "要删除的路径与所属应用"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "oneOf":
+                  - "$ref": "#/components/schemas/trash.Result"
+                  - "$ref": "#/components/schemas/api.DryRunResponse"
+          "description": "移入废纸篓的结果，试运行时返回计划"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "卸载应用残留"
+      "tags":
+        - "apps"
+  "/api/apps/{id}/residual":
+    "get":
+      "description": "返回单个应用留下的文件与目录。"
+      "operationId": "getAppResiduals"
+      "parameters":
+        - "description": "应用的 bundle id"
+          "example": "com.apple.Safari"
+          "in": "path"
+          "name": "id"
+          "required": true
+          "schema":
+            "type": "string"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.AppResidualResponse"
+          "description": "残留文件"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "找不到应用"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "应用残留"
+      "tags":
+        - "apps"
+  "/api/audit":
+    "get":
+      "description": "按时间倒序返回最近的写操作记录。"
+      "operationId": "getAuditLog"
+      "parameters":
+        - "description": "返回的条数上限"
+          "example": 200
+          "in": "query"
+          "name": "limit"
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.AuditResponse"
+          "description": "审计条目"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "审计日志"
+      "tags":
+        - "system"
+  "/api/clean/duplicates":
+    "get":
+      "description": "启动一次重复文件扫描，扫描在后台跑，用 /api/clean/job 查进度。"
+      "operationId": "startDuplicateScan"
+      "parameters":
+        - "description": "最小文件大小，单位字节"
+          "example": 1048576
+          "in": "query"
+          "name": "minSize"
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/cleaner.Job"
+          "description": "扫描任务"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "重复文件扫描"
+      "tags":
+        - "clean"
+  "/api/clean/execute":
+    "post":
+      "description": "把选中的项目移入废纸篓。dryRun 为真时只给出计划，不动文件。"
+      "operationId": "executeClean"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.CleanExecuteRequest"
+        "description": "要清理的路径"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "oneOf":
+                  - "$ref": "#/components/schemas/trash.Result"
+                  - "$ref": "#/components/schemas/api.DryRunResponse"
+          "description": "移入废纸篓的结果，试运行时返回计划"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "执行清理"
+      "tags":
+        - "clean"
+  "/api/clean/job":
+    "get":
+      "description": "按 id 查询扫描任务，缺省时返回该类型最近的一次任务。"
+      "operationId": "getCleanJob"
+      "parameters":
+        - "description": "任务 id"
+          "example": "12"
+          "in": "query"
+          "name": "id"
+          "schema":
+            "type": "string"
+        - "description": "任务类型，large-files 或 duplicates"
+          "example": "large-files"
+          "in": "query"
+          "name": "kind"
+          "schema":
+            "type": "string"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/cleaner.Job"
+          "description": "扫描任务"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "没有这个任务"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "扫描任务"
+      "tags":
+        - "clean"
+  "/api/clean/large":
+    "get":
+      "description": "启动一次大文件扫描，扫描在后台跑，用 /api/clean/job 查进度。"
+      "operationId": "startLargeFileScan"
+      "parameters":
+        - "description": "最小文件大小，单位字节"
+          "example": 524288000
+          "in": "query"
+          "name": "minSize"
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/cleaner.Job"
+          "description": "扫描任务"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "大文件扫描"
+      "tags":
+        - "clean"
+  "/api/clean/scan":
+    "get":
+      "description": "返回缓存与日志等可清理的内容。"
+      "operationId": "scanCleanable"
+      "parameters":
+        - "description": "为 1 时重新扫描"
+          "example": 0
+          "in": "query"
+          "name": "rescan"
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/cleaner.ScanResult"
+          "description": "可清理项"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "可清理项"
+      "tags":
+        - "clean"
+  "/api/docs":
+    "get":
+      "description": "返回一个可以浏览并试用接口的页面。"
+      "operationId": "getAPIDocs"
+      "responses":
+        "200":
+          "description": "文档页面"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "接口文档页面"
+      "tags":
+        - "docs"
+  "/api/env/agent/install":
+    "post":
+      "description": "创建登录启动项，让环境变量在登录后依然生效。"
+      "operationId": "installEnvAgent"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.OKResponse"
+          "description": "已安装"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "安装登录代理"
+      "tags":
+        - "env"
+  "/api/env/agent/uninstall":
+    "post":
+      "description": "移除登录启动项。"
+      "operationId": "uninstallEnvAgent"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.OKResponse"
+          "description": "已卸载"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "卸载登录代理"
+      "tags":
+        - "env"
+  "/api/env/backups":
+    "get":
+      "description": "列出 ~/.config/mymac/backup 下的环境变量备份。"
+      "operationId": "listEnvBackups"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.EnvBackupsResponse"
+          "description": "备份列表"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "列出备份"
+      "tags":
+        - "env"
+  "/api/env/export":
+    "get":
+      "description": "导出受管变量。默认是 JSON 文档，format=env 时返回 .env 文本。"
+      "operationId": "exportEnvVars"
+      "parameters":
+        - "description": "env 返回 .env 文本，默认返回 JSON"
+          "example": "env"
+          "in": "query"
+          "name": "format"
+          "schema":
+            "type": "string"
+      "responses":
+        "200":
+          "content":
+            "text/plain":
+              "schema":
+                "type": "string"
+          "description": "导出的 .env 文本"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "导出环境变量"
+      "tags":
+        - "env"
+  "/api/env/import":
+    "post":
+      "description": "把导入的变量写进受管清单。"
+      "operationId": "importEnvVars"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.EnvImportRequest"
+        "description": "要导入的文本"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.EnvImportResponse"
+          "description": "已应用的改动"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "导入环境变量"
+      "tags":
+        - "env"
+  "/api/env/import/preview":
+    "post":
+      "description": "只计算导入会新增和更新哪些变量，不落盘。"
+      "operationId": "previewEnvImport"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.EnvImportRequest"
+        "description": "要导入的文本"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.EnvImportPreviewResponse"
+          "description": "将会发生的改动"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "预览导入结果"
+      "tags":
+        - "env"
+  "/api/env/marker/remove":
+    "post":
+      "description": "从 ~/.zshenv 里删掉受管标记块。"
+      "operationId": "removeEnvMarker"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.OKResponse"
+          "description": "已移除"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "移除标记块"
+      "tags":
+        - "env"
+  "/api/env/marker/repair":
+    "post":
+      "description": "重写 ~/.zshenv 里的受管标记块。"
+      "operationId": "repairEnvMarker"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/envs.MarkerReport"
+          "description": "修复后的标记块报告"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "修复标记块"
+      "tags":
+        - "env"
+  "/api/env/path":
+    "get":
+      "description": "返回 PATH 的前置、后置片段与合并结果。"
+      "operationId": "getEnvPath"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/envs.PathView"
+          "description": "PATH 视图"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "读取 PATH 配置"
+      "tags":
+        - "env"
+    "post":
+      "description": "整体写入 PATH 的前置与后置片段。"
+      "operationId": "setEnvPath"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.EnvPathSetRequest"
+        "description": "PATH 片段"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/envs.PathView"
+          "description": "保存后的 PATH 视图"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "保存 PATH 配置"
+      "tags":
+        - "env"
+  "/api/env/restore":
+    "post":
+      "description": "用一份备份覆盖当前的环境变量文件。"
+      "operationId": "restoreEnvBackup"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.EnvRestoreRequest"
+        "description": "备份文件名"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.EnvRestoreResponse"
+          "description": "恢复后的文件"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "恢复备份"
+      "tags":
+        - "env"
+  "/api/env/status":
+    "get":
+      "description": "汇总标记块、登录代理、受管数量和警告。"
+      "operationId": "getEnvStatus"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.EnvStatusResponse"
+          "description": "健康状况"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "环境层健康状况"
+      "tags":
+        - "env"
+  "/api/env/vars":
+    "get":
+      "description": "返回受管变量、launchd 层、shell 文件与当前进程环境的合并视图。"
+      "operationId": "listEnvVars"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/envs.Snapshot"
+          "description": "多层面板"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "环境变量总览"
+      "tags":
+        - "env"
+    "post":
+      "description": "把一个变量写入受管清单。"
+      "operationId": "createEnvVar"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.EnvVarCreateRequest"
+        "description": "新变量"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/envs.ManagedVar"
+          "description": "写入后的变量"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "新增环境变量"
+      "tags":
+        - "env"
+  "/api/env/vars/{name}":
+    "delete":
+      "description": "从所有层里移除一个受管变量。"
+      "operationId": "deleteEnvVar"
+      "parameters":
+        - "description": "变量名"
+          "example": "EDITOR"
+          "in": "path"
+          "name": "name"
+          "required": true
+          "schema":
+            "type": "string"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.EnvVarDeleteResponse"
+          "description": "已删除"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "删除环境变量"
+      "tags":
+        - "env"
+    "patch":
+      "description": "只改动请求体里出现的字段，未出现的字段保持原样。"
+      "operationId": "updateEnvVar"
+      "parameters":
+        - "description": "变量名"
+          "example": "EDITOR"
+          "in": "path"
+          "name": "name"
+          "required": true
+          "schema":
+            "type": "string"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.EnvVarUpdateRequest"
+        "description": "要改动的字段"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/envs.ManagedVar"
+          "description": "改动后的变量"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "修改环境变量"
+      "tags":
+        - "env"
+  "/api/env/vars/{name}/apply":
+    "post":
+      "description": "把一个变量重新推送到 launchd 层并回读校验。"
+      "operationId": "applyEnvVar"
+      "parameters":
+        - "description": "变量名"
+          "example": "EDITOR"
+          "in": "path"
+          "name": "name"
+          "required": true
+          "schema":
+            "type": "string"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/envs.ManagedVar"
+          "description": "下发后的变量"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "重新下发环境变量"
+      "tags":
+        - "env"
+  "/api/health":
+    "get":
+      "description": "返回版本、运行时长、进程号和监听端口。"
+      "operationId": "getHealth"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.HealthResponse"
+          "description": "当前状态"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "运行状态"
+      "tags":
+        - "system"
+  "/api/loginitems":
+    "get":
+      "description": "返回登录启动项与后台服务。"
+      "operationId": "listLoginItems"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/loginitems.List"
+          "description": "启动项"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "启动项列表"
+      "tags":
+        - "loginitems"
+  "/api/loginitems/remove":
+    "post":
+      "description": "把一个 LaunchAgent 定义移入废纸篓。"
+      "operationId": "removeLoginItem"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.LoginItemRemoveRequest"
+        "description": "plist 文件路径"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.OKResponse"
+          "description": "已删除"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "删除启动项"
+      "tags":
+        - "loginitems"
+  "/api/loginitems/state":
+    "post":
+      "description": "打开或关闭一个启动项。"
+      "operationId": "setLoginItemState"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.LoginItemStateRequest"
+        "description": "启动项与目标状态"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.LoginItemStateResponse"
+          "description": "新的状态"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "启用或禁用启动项"
+      "tags":
+        - "loginitems"
+  "/api/openapi.json":
+    "get":
+      "description": "返回本 API 的 OpenAPI 3.0 描述。"
+      "operationId": "getOpenAPI"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.OpenAPIResponse"
+          "description": "OpenAPI 文档"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "接口描述"
+      "tags":
+        - "docs"
+  "/api/perm/open":
+    "post":
+      "description": "打开对应隐私权限的系统设置面板，由用户手动授权。"
+      "operationId": "openPermissionSettings"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.PermOpenRequest"
+        "description": "要打开的权限面板"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.OKResponse"
+          "description": "面板已打开"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "打开系统设置"
+      "tags":
+        - "system"
+  "/api/perm/status":
+    "get":
+      "description": "探测完全磁盘访问、自动化与管理员权限的状态。"
+      "operationId": "getPermissionStatus"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.PermStatusResponse"
+          "description": "每一项权限的状态"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "隐私权限状态"
+      "tags":
+        - "system"
+  "/api/ports/process/{pid}/{action}":
+    "post":
+      "description": "对占用端口的进程执行 stop、kill 或 restart。"
+      "operationId": "handlePortProcess"
+      "parameters":
+        - "description": "进程号"
+          "example": 1234
+          "in": "path"
+          "name": "pid"
+          "required": true
+          "schema":
+            "type": "integer"
+        - "description": "stop、kill 或 restart"
+          "example": "restart"
+          "in": "path"
+          "name": "action"
+          "required": true
+          "schema":
+            "type": "string"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.PortActionRequest"
+        "description": "进程的创建时间，用来防止 pid 被复用"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ports.ActionResult"
+          "description": "处理结果"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.PortActionErrorResponse"
+          "description": "处理失败时的答案"
+      "summary": "处理端口进程"
+      "tags":
+        - "ports"
+  "/api/ports/rules":
+    "get":
+      "description": "返回内置规则与用户规则的汇总。"
+      "operationId": "getPortRules"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/rules.Summary"
+          "description": "规则汇总"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "端口规则"
+      "tags":
+        - "ports"
+  "/api/ports/rules/override":
+    "post":
+      "description": "新增或删除一条用户规则。"
+      "operationId": "overridePortRules"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.PortRulesOverrideRequest"
+        "description": "规则"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/rules.Summary"
+          "description": "改动后的规则汇总"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "覆盖端口规则"
+      "tags":
+        - "ports"
+  "/api/ports/rules/reload":
+    "post":
+      "description": "重新读取用户规则文件。"
+      "operationId": "reloadPortRules"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/rules.Summary"
+          "description": "重载后的规则汇总"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "重载端口规则"
+      "tags":
+        - "ports"
+  "/api/ports/snapshot":
+    "get":
+      "description": "返回监听端口与占用它们的进程。系统进程默认隐藏，但计数仍然给出。"
+      "operationId": "getPortsSnapshot"
+      "parameters":
+        - "description": "为 1 时连系统进程一起返回"
+          "example": 0
+          "in": "query"
+          "name": "include_system"
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ports.Snapshot"
+          "description": "端口快照"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "端口占用"
+      "tags":
+        - "ports"
+  "/api/procs":
+    "get":
+      "description": "返回缓存的进程表。采集在后台进行，这个请求只读缓存。"
+      "operationId": "listProcesses"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ProcListResponse"
+          "description": "进程表"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "进程列表"
+      "tags":
+        - "procs"
+  "/api/procs/alerts":
+    "get":
+      "description": "返回 CPU 与内存的告警阈值。"
+      "operationId": "getAlertRules"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.AlertRulesResponse"
+          "description": "阈值列表"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "告警阈值"
+      "tags":
+        - "procs"
+    "post":
+      "description": "整体替换告警阈值列表。"
+      "operationId": "updateAlertRules"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.AlertRulesRequest"
+        "description": "新的阈值列表"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.AlertRulesResponse"
+          "description": "保存后的阈值列表"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "保存告警阈值"
+      "tags":
+        - "procs"
+  "/api/procs/stream":
+    "get":
+      "description": "以 Server-Sent Events 推送进程表与系统概览。"
+      "operationId": "streamProcesses"
+      "parameters":
+        - "description": "推送间隔毫秒数，可选 1000、2000、5000"
+          "example": 2000
+          "in": "query"
+          "name": "interval"
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "text/event-stream":
+              "schema":
+                "$ref": "#/components/schemas/api.ProcStreamResponse"
+          "description": "事件流"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "进程表流"
+      "tags":
+        - "procs"
+  "/api/procs/{pid}":
+    "get":
+      "description": "返回进程的扩展信息，包括打开的文件和环境变量。"
+      "operationId": "getProcess"
+      "parameters":
+        - "description": "进程号"
+          "example": 1234
+          "in": "path"
+          "name": "pid"
+          "required": true
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ProcDetailResponse"
+          "description": "进程详情"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "进程不存在"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "进程详情"
+      "tags":
+        - "procs"
+  "/api/procs/{pid}/files":
+    "get":
+      "description": "列出进程当前打开的文件描述符。"
+      "operationId": "listProcessFiles"
+      "parameters":
+        - "description": "进程号"
+          "example": 1234
+          "in": "path"
+          "name": "pid"
+          "required": true
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ProcFilesResponse"
+          "description": "文件路径"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "进程打开的文件"
+      "tags":
+        - "procs"
+  "/api/procs/{pid}/renice":
+    "post":
+      "description": "修改进程的调度优先级，取值 -20 到 20。"
+      "operationId": "reniceProcess"
+      "parameters":
+        - "description": "进程号"
+          "example": 1234
+          "in": "path"
+          "name": "pid"
+          "required": true
+          "schema":
+            "type": "integer"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.ProcReniceRequest"
+        "description": "新的优先级"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ProcReniceResponse"
+          "description": "已调整"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "调整优先级"
+      "tags":
+        - "procs"
+  "/api/procs/{pid}/sample":
+    "get":
+      "description": "抓取一次线程栈采样。"
+      "operationId": "sampleProcess"
+      "parameters":
+        - "description": "进程号"
+          "example": 1234
+          "in": "path"
+          "name": "pid"
+          "required": true
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ProcSampleResponse"
+          "description": "采样输出"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "进程采样"
+      "tags":
+        - "procs"
+  "/api/procs/{pid}/signal":
+    "post":
+      "description": "给进程发信号。杀受系统保护的进程需要 confirmed 为真。"
+      "operationId": "signalProcess"
+      "parameters":
+        - "description": "进程号"
+          "example": 1234
+          "in": "path"
+          "name": "pid"
+          "required": true
+          "schema":
+            "type": "integer"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "$ref": "#/components/schemas/api.ProcSignalRequest"
+        "description": "信号名，默认为 TERM"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ProcSignalResponse"
+          "description": "已发送"
+        "409":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "受保护的进程需要确认"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "发送信号"
+      "tags":
+        - "procs"
+  "/api/system/overview":
+    "get":
+      "description": "返回 CPU、内存、磁盘、网络与电池的汇总。"
+      "operationId": "getSystemOverview"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/sysinfo.Overview"
+          "description": "系统概览"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "系统概览"
+      "tags":
+        - "procs"
+  "/api/trash/status":
+    "get":
+      "description": "探测 Finder 自动化是否可用。不可用时只能退回 rm。"
+      "operationId": "getTrashStatus"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/trash.Status"
+          "description": "废纸篓状态"
+        "default":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/api.ErrorResponse"
+          "description": "请求失败时的通用错误"
+      "summary": "废纸篓可用性"
+      "tags":
+        - "apps"
+"servers":
+  - "description": "mymac 启动后在本机监听，端口见 /api/health"
+    "url": "http://127.0.0.1:{port}"
+    "variables":
+      "port":
+        "default": "8888"
+        "description": "mymac 实际监听的端口"
+"tags":
+  - "description": "运行状态、权限与审计日志"
+    "name": "system"
+  - "description": "环境变量的三层模型"
+    "name": "env"
+  - "description": "进程列表、采样与信号"
+    "name": "procs"
+  - "description": "端口占用与系统服务规则"
+    "name": "ports"
+  - "description": "登录启动项"
+    "name": "loginitems"
+  - "description": "已安装应用与残留文件"
+    "name": "apps"
+  - "description": "系统清理与废纸篓"
+    "name": "clean"
+  - "description": "接口描述本身"
+    "name": "docs"

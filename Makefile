@@ -45,6 +45,10 @@ fmt: ## Format the tree
 icons: ## Regenerate the favicon / app icon assets
 	go run $(GOFLAGS) ./tools/genicon
 
+.PHONY: openapi
+openapi: ## Regenerate docs/openapi.json and docs/openapi.yaml
+	go run $(GOFLAGS) ./tools/genopenapi -out docs
+
 .PHONY: install
 install: build ## Install the binary into $(PREFIX)
 	@mkdir -p $(PREFIX)

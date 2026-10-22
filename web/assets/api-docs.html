@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>mymac 接口文档</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<meta name="color-scheme" content="light dark">
+<style>
+:root {
+  --bg: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+  --mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+  --tint: 246 247 250;
+  --panel: 255 255 255;
+  --panel-2: 244 245 248;
+  --text: 22 24 30;
+  --text-2: 96 101 112;
+  --text-3: 140 146 158;
+  --line-op: .09;
+  --accent: 10 132 255;
+  --green: 40 200 90;
+  --amber: 245 159 0;
+  --red: 255 69 58;
+  --violet: 100 82 224;
+  --radius: 14px;
+}
+:root[data-theme="dark"] {
+  --tint: 24 25 30;
+  --panel: 30 31 37;
+  --panel-2: 38 39 46;
+  --text: 240 242 246;
+  --text-2: 168 174 188;
+  --text-3: 120 126 140;
+  --line-op: .14;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: rgb(var(--tint));
+  color: rgb(var(--text));
+  font-family: var(--bg);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(900px 500px at 0% -10%, rgb(var(--accent) / .12), transparent 60%),
+    radial-gradient(700px 500px at 100% 0%, rgb(var(--violet) / .10), transparent 60%);
+  pointer-events: none;
+}
+.layout {
+  position: relative;
+  display: grid;
+  grid-template-columns: 290px 1fr;
+  height: 100vh;
+}
+.side {
+  border-right: 1px solid rgb(var(--text) / var(--line-op));
+  padding: 18px 14px;
+  overflow-y: auto;
+  background: rgb(var(--panel) / .6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.brand { display: flex; gap: 10px; align-items: center; padding: 0 6px 14px; }
+.brand img { width: 30px; height: 30px; }
+.brand strong { display: block; font-size: 15px; }
+.brand span { color: rgb(var(--text-2)); font-size: 12px; }
+#search {
+  width: 100%;
+  padding: 8px 11px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border: 1px solid rgb(var(--text) / var(--line-op));
+  background: rgb(var(--panel-2));
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+#search:focus { border-color: rgb(var(--accent) / .6); }
+.group { margin-bottom: 14px; }
+.group h3 {
+  margin: 0 0 6px;
+  padding: 0 6px;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgb(var(--text-3));
+}
+.group p { margin: 0 0 8px; padding: 0 6px; font-size: 12px; color: rgb(var(--text-2)); }
+.op {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.op:hover { background: rgb(var(--text) / .05); }
+.op.active { background: rgb(var(--accent) / .14); }
+.op code { font-family: var(--mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.main { overflow-y: auto; padding: 30px 40px 80px; }
+.main-inner { max-width: 940px; margin: 0 auto; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 15px; margin: 26px 0 10px; }
+p { line-height: 1.65; color: rgb(var(--text-2)); }
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgb(var(--text) / .07);
+  color: rgb(var(--text-2));
+}
+.method {
+  display: inline-block;
+  min-width: 58px;
+  padding: 3px 9px;
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+}
+.m-GET { background: rgb(var(--green)); }
+.m-POST { background: rgb(var(--accent)); }
+.m-PUT { background: rgb(var(--amber)); }
+.m-PATCH { background: rgb(var(--violet)); }
+.m-DELETE { background: rgb(var(--red)); }
+.path { font-family: var(--mono); font-size: 16px; }
+.head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+.card {
+  border: 1px solid rgb(var(--text) / var(--line-op));
+  border-radius: var(--radius);
+  background: rgb(var(--panel) / .8);
+  padding: 16px 18px;
+  margin: 12px 0;
+}
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid rgb(var(--text) / var(--line-op)); vertical-align: top; }
+th { color: rgb(var(--text-3)); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+td code, code { font-family: var(--mono); font-size: 12px; }
+.req { color: rgb(var(--red)); font-size: 11px; }
+.tree { list-style: none; margin: 0; padding-left: 16px; }
+.tree li { padding: 2px 0; font-family: var(--mono); font-size: 12px; }
+.tree .k { color: rgb(var(--text)); }
+.tree .t { color: rgb(var(--accent)); }
+.tree .d { color: rgb(var(--text-3)); font-family: var(--bg); }
+input, textarea, select {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid rgb(var(--text) / var(--line-op));
+  background: rgb(var(--panel-2));
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+textarea { font-family: var(--mono); font-size: 12px; min-height: 120px; resize: vertical; }
+input:focus, textarea:focus { border-color: rgb(var(--accent) / .6); }
+label { display: block; font-size: 12px; color: rgb(var(--text-2)); margin: 10px 0 4px; }
+button.run {
+  margin-top: 12px;
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: rgb(var(--accent));
+  color: #fff;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+button.run:hover { filter: brightness(1.06); }
+pre {
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgb(var(--panel-2));
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.status { font-family: var(--mono); font-size: 12px; }
+.ok { color: rgb(var(--green)); }
+.bad { color: rgb(var(--red)); }
+.muted { color: rgb(var(--text-3)); }
+.empty { padding: 60px 0; text-align: center; color: rgb(var(--text-3)); }
+@media (max-width: 780px) {
+  .layout { grid-template-columns: 1fr; }
+  .side { display: none; }
+  .main { padding: 20px 18px 60px; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <div class="brand">
+      <img src="/static/favicon.svg" alt="">
+      <div>
+        <strong>mymac</strong>
+        <span>接口文档</span>
+      </div>
+    </div>
+    <input id="search" placeholder="搜索路径或说明…" autocomplete="off">
+    <nav id="nav"></nav>
+  </aside>
+  <main class="main"><div class="main-inner" id="main"></div></main>
+</div>
+<script>
+"use strict";
+
+const state = { doc: null, filter: "" };
+
+// load reads the description from the server.
+async function load() {
+  const res = await fetch("/api/openapi.json", { credentials: "same-origin" });
+  if (!res.ok) {
+    document.getElementById("main").innerHTML = '<div class="empty">读不到接口描述</div>';
+    return;
+  }
+  state.doc = await res.json();
+  state.doc.paths = state.doc.paths || {};
+  renderNav();
+  route();
+}
+
+// operations lists every operation of the document.
+function operations() {
+  const out = [];
+  for (const path of Object.keys(state.doc.paths).sort()) {
+    const item = state.doc.paths[path];
+    for (const method of ["get", "post", "put", "patch", "delete"]) {
+      if (item[method]) out.push({ method: method.toUpperCase(), path, op: item[method] });
+    }
+  }
+  return out;
+}
+
+// renderNav draws the list of operations.
+function renderNav() {
+  const nav = document.getElementById("nav");
+  const filter = state.filter.trim().toLowerCase();
+  const groups = new Map();
+  for (const item of operations()) {
+    const hay = (item.path + " " + (item.op.summary || "") + " " + (item.op.description || "") + " " + item.method).toLowerCase();
+    if (filter && !hay.includes(filter)) continue;
+    const tag = (item.op.tags && item.op.tags[0]) || "other";
+    if (!groups.has(tag)) groups.set(tag, []);
+    groups.get(tag).push(item);
+  }
+  const tags = state.doc.tags || [];
+  let html = "";
+  for (const [tag, items] of groups) {
+    const desc = (tags.find((t) => t.name === tag) || {}).description || "";
+    html += '<div class="group"><h3>' + esc(tag) + "</h3>";
+    if (desc) html += "<p>" + esc(desc) + "</p>";
+    for (const item of items) {
+      const active = currentKey() === item.method + " " + item.path ? " active" : "";
+      html += '<button class="op' + active + '" data-key="' + esc(item.method + " " + item.path) + '">' +
+        '<span class="method m-' + item.method + '">' + item.method + "</span>" +
+        "<code>" + esc(item.path) + "</code></button>";
+    }
+    html += "</div>";
+  }
+  nav.innerHTML = html || '<div class="muted" style="padding:8px">没有匹配的接口</div>';
+  for (const btn of nav.querySelectorAll(".op")) {
+    btn.addEventListener("click", () => {
+      const parts = btn.dataset.key.split(" ");
+      location.hash = "#" + parts[0] + " " + parts[1];
+    });
+  }
+}
+
+// currentKey returns the operation the address bar points at.
+function currentKey() {
+  const hash = decodeURIComponent(location.hash.replace(/^#/, ""));
+  return hash;
+}
+
+// route shows the operation the address bar points at.
+function route() {
+  const main = document.getElementById("main");
+  const key = currentKey();
+  const item = operations().find((o) => o.method + " " + o.path === key);
+  renderNav();
+  if (!item) {
+    const count = operations().length;
+    main.innerHTML = '<div class="empty">从左边挑一个接口。<br><span class="muted">共 ' + count + " 个接口</span></div>";
+    return;
+  }
+  main.innerHTML = renderOperation(item);
+  wireOperation(item);
+}
+
+// renderOperation draws one operation.
+function renderOperation(item) {
+  const op = item.op;
+  let html = '<div class="head"><span class="method m-' + item.method + '">' + item.method + "</span>" +
+    '<span class="path">' + esc(item.path) + "</span>" +
+    (op.tags ? '<span class="tag">' + esc(op.tags.join(", ")) + "</span>" : "") + "</div>";
+  html += "<h1>" + esc(op.summary || "") + "</h1>";
+  if (op.description) html += "<p>" + esc(op.description) + "</p>";
+
+  const params = op.parameters || [];
+  if (params.length) {
+    html += "<h2>参数</h2><div class=\"card\"><table><thead><tr><th>名字</th><th>位置</th><th>类型</th><th>说明</th></tr></thead><tbody>";
+    for (const p of params) {
+      html += "<tr><td><code>" + esc(p.name) + "</code>" + (p.required ? ' <span class="req">必填</span>' : "") + "</td>" +
+        "<td>" + esc(p.in) + "</td>" +
+        "<td><code>" + esc(typeOf(p.schema)) + "</code></td>" +
+        "<td>" + esc(p.description || "") + "</td></tr>";
+    }
+    html += "</tbody></table></div>";
+  }
+
+  if (op.requestBody) {
+    const ct = Object.keys(op.requestBody.content || {})[0] || "application/json";
+    const schema = (op.requestBody.content[ct] || {}).schema;
+    html += "<h2>请求体 <span class=\"tag\">" + esc(ct) + "</span></h2><div class=\"card\">";
+    if (op.requestBody.description) html += "<p>" + esc(op.requestBody.description) + "</p>";
+    html += '<div class="tree">' + tree(schema, new Set()) + "</div></div>";
+  }
+
+  const codes = Object.keys(op.responses || {});
+  if (codes.length) {
+    html += "<h2>返回</h2>";
+    for (const code of codes) {
+      const resp = op.responses[code];
+      html += '<div class="card"><div class="head"><span class="status">' + esc(code) + "</span>" +
+        "<span>" + esc(resp.description || "") + "</span></div>";
+      const ct = Object.keys(resp.content || {})[0];
+      if (ct) {
+        const schema = (resp.content[ct] || {}).schema;
+        html += '<div class="tree">' + tree(schema, new Set()) + "</div>";
+      }
+      html += "</div>";
+    }
+  }
+
+  html += "<h2>试一试</h2><div class=\"card\" id=\"try\"></div>";
+  return html;
+}
+
+// wireOperation makes the try panel work.
+function wireOperation(item) {
+  const op = item.op;
+  const box = document.getElementById("try");
+  const params = (op.parameters || []).filter((p) => p.in === "path" || p.in === "query");
+  let html = "";
+  const ids = {};
+  for (const p of params) {
+    const id = "p-" + p.in + "-" + p.name;
+    ids[p.in + " " + p.name] = id;
+    const def = p.example !== undefined ? p.example : "";
+    html += '<label for="' + id + '">' + esc(p.name) + " (" + esc(p.in) + ")" +
+      (p.required ? ' <span class="req">必填</span>' : "") + "</label>" +
+      '<input id="' + id + '" value="' + esc(String(def)) + '" placeholder="' + esc(p.description || "") + '">';
+  }
+  if (op.requestBody) {
+    const ct = Object.keys(op.requestBody.content || {})[0] || "application/json";
+    const schema = (op.requestBody.content[ct] || {}).schema;
+    html += "<label>请求体 (" + esc(ct) + ")</label>" +
+      '<textarea id="body">' + esc(JSON.stringify(sample(schema, new Set()), null, 2)) + "</textarea>";
+  }
+  html += '<button class="run" id="run">发送请求</button><div id="out"></div>';
+  box.innerHTML = html;
+
+  document.getElementById("run").addEventListener("click", async () => {
+    let path = item.path;
+    const query = [];
+    for (const p of params) {
+      const el = document.getElementById(ids[p.in + " " + p.name]);
+      const value = el ? el.value.trim() : "";
+      if (!value) continue;
+      if (p.in === "path") path = path.replace("{" + p.name + "}", encodeURIComponent(value));
+      else query.push(encodeURIComponent(p.name) + "=" + encodeURIComponent(value));
+    }
+    const url = path + (query.length ? "?" + query.join("&") : "");
+    const init = { method: item.method, headers: {}, credentials: "same-origin" };
+    const body = document.getElementById("body");
+    if (body && item.method !== "GET" && item.method !== "HEAD") {
+      init.headers["Content-Type"] = "application/json";
+      init.body = body.value;
+    }
+    const out = document.getElementById("out");
+    out.innerHTML = '<p class="muted">请求中…</p>';
+    try {
+      const res = await fetch(url, init);
+      const text = await res.text();
+      let pretty = text;
+      try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch (e) { /* not json */ }
+      out.innerHTML = '<p><span class="status ' + (res.ok ? "ok" : "bad") + '">' + res.status + " " + res.statusText + "</span></p>" +
+        "<pre>" + esc(pretty) + "</pre>";
+    } catch (err) {
+      out.innerHTML = '<p class="bad">' + esc(String(err)) + "</p>";
+    }
+  });
+}
+
+// tree renders a schema as a nested list.
+function tree(schema, seen) {
+  if (!schema) return "";
+  if (schema.$ref) {
+    const name = schema.$ref.split("/").pop();
+    if (seen.has(name)) return '<li><span class="k">' + esc(name) + "</span> <span class=\"t\">递归</span></li>";
+    seen.add(name);
+    return tree(resolve(schema.$ref), seen);
+  }
+  if (schema.oneOf) {
+    return schema.oneOf.map((s) => tree(s, new Set(seen))).join("");
+  }
+  if (schema.allOf) {
+    return schema.allOf.map((s) => tree(s, new Set(seen))).join("");
+  }
+  let out = "";
+  const type = typeOf(schema);
+  if (schema.type === "object" && schema.properties) {
+    out += '<li><span class="t">' + esc(type) + "</span></li><ul class=\"tree\">";
+    for (const key of Object.keys(schema.properties)) {
+      const prop = schema.properties[key];
+      const desc = prop.description ? ' <span class="d">' + esc(prop.description) + "</span>" : "";
+      out += "<li><span class=\"k\">" + esc(key) + "</span> <span class=\"t\">" + esc(typeOf(prop)) + "</span>" + desc + "</li>";
+    }
+    out += "</ul>";
+    return out;
+  }
+  if (schema.type === "array") {
+    return '<li><span class="t">array</span> <span class="k">[]</span></li><ul class="tree">' + tree(schema.items, seen) + "</ul>";
+  }
+  const extra = schema.enum ? ' <span class="d">' + esc(schema.enum.join(" | ")) + "</span>" : "";
+  return '<li><span class="t">' + esc(type) + "</span>" + extra + "</li>";
+}
+
+// sample builds an example value from a schema.
+function sample(schema, seen) {
+  if (!schema) return null;
+  if (schema.$ref) {
+    const name = schema.$ref.split("/").pop();
+    if (seen.has(name)) return null;
+    seen.add(name);
+    return sample(resolve(schema.$ref), seen);
+  }
+  if (schema.oneOf) return sample(schema.oneOf[0], seen);
+  if (schema.allOf) return sample(schema.allOf[0], seen);
+  switch (schema.type) {
+    case "object": {
+      const out = {};
+      for (const key of Object.keys(schema.properties || {})) out[key] = sample(schema.properties[key], new Set(seen));
+      return out;
+    }
+    case "array": return [sample(schema.items, new Set(seen))];
+    case "string": return schema.enum && schema.enum.length ? schema.enum[0] : "";
+    case "integer": return 0;
+    case "number": return 0;
+    case "boolean": return true;
+    default: return null;
+  }
+}
+
+// resolve looks a component schema up.
+function resolve(ref) {
+  const name = ref.split("/").pop();
+  const schemas = (state.doc.components || {}).schemas || {};
+  return schemas[name] || {};
+}
+
+// typeOf names the type of a schema.
+function typeOf(schema) {
+  if (!schema) return "any";
+  if (schema.$ref) return schema.$ref.split("/").pop();
+  if (schema.oneOf) return schema.oneOf.map(typeOf).join(" | ");
+  if (schema.allOf) return schema.allOf.map(typeOf).join(" & ");
+  if (schema.type === "array") return "array";
+  if (schema.type) return schema.type;
+  return "any";
+}
+
+// esc escapes a text for the page.
+function esc(text) {
+  return String(text === undefined || text === null ? "" : text)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+document.getElementById("search").addEventListener("input", (e) => {
+  state.filter = e.target.value;
+  renderNav();
+});
+window.addEventListener("hashchange", route);
+load();
+</script>
+</body>
+</html>

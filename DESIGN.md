@@ -147,6 +147,23 @@ GET    /api/audit?limit=200     最近审计记录
              "message": "人类可读", "detail": "原始错误" } }
 ```
 
+### 3.4 接口描述
+
+接口清单是**一份表**（`internal/api/ops.go`），路由从这张表注册，OpenAPI 描述也从这张表生成：
+
+- 表里的一条记录 = 一个方法 + 一个路径 + 参数 + 请求体类型 + 响应体类型 + 说明文字。
+- `internal/api/types.go` 里的请求/响应类型同时被处理器和描述使用，字段名不会对不上。
+- `internal/api/schema.go` 用反射把 Go 类型变成 JSON Schema：命名类型变成 `components/schemas`，
+  内嵌结构体按 `encoding/json` 的规则摊平，闭集（`errs.Kind` 等）写成 `enum`。
+- 描述用 OpenAPI 3.0.3，同时输出 JSON 和 YAML；JSON 由标准库写出，YAML 由一个只覆盖本项目
+  用到的结构的写出器生成（`internal/api/encoding.go`），不引第三方依赖。
+- 端点在 `GET /api/openapi.json`，可读的文档页在 `GET /api/docs`（自带页面，不联网）。
+  同一份描述也提交在 `docs/openapi.json` 与 `docs/openapi.yaml`，`make openapi` 重新生成。
+
+**为什么不用代码注解生成**：注解式生成器（swaggo 之类）要么引依赖，要么在编译期跑
+外部工具；本项目要求单二进制、零第三方依赖，接口也就四十来个，一张表就够。
+表驱动还带来一个额外好处：路由和描述不可能对不上，测试会直接失败而不是等到有人写文档。
+
 ---
 
 ## 4. 核心数据结构

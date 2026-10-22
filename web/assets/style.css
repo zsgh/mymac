@@ -140,6 +140,7 @@ body::before {
   font: inherit; font-size: 12px; cursor: pointer; padding: 4px 6px; border-radius: 8px;
 }
 .ghost-btn:hover { color: rgb(var(--text)); background: rgb(var(--tint-strong) / .5); }
+a.ghost-btn { text-decoration: none; display: inline-block; }
 .status-dot { color: rgb(var(--green)); font-size: 12px; }
 .status-dot.off { color: rgb(var(--red)); }
 

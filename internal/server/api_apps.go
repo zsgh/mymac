@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"mymac/internal/api"
 	"mymac/internal/apps"
 	"mymac/internal/audit"
 	"mymac/internal/cleaner"
@@ -41,10 +42,10 @@ func (s *Server) handleApps(w http.ResponseWriter, r *http.Request) {
 	if rescan {
 		go s.apps.WarmSizes(context.WithoutCancel(r.Context()))
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"items":   items,
-		"count":   len(items),
-		"pending": pending,
+	writeJSON(w, http.StatusOK, api.AppListResponse{
+		Items:   items,
+		Count:   len(items),
+		Pending: pending,
 	})
 }
 
@@ -72,10 +73,10 @@ func (s *Server) handleAppResiduals(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"items": residuals,
-		"app":   target,
-		"count": len(residuals),
+	writeJSON(w, http.StatusOK, api.AppResidualResponse{
+		Items: residuals,
+		App:   target,
+		Count: len(residuals),
 	})
 }
 
@@ -126,7 +127,7 @@ func (s *Server) handleAppResidualsGrouped(w http.ResponseWriter, r *http.Reques
 			Items:    residuals,
 		})
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"groups": groups, "count": len(groups)})
+	writeJSON(w, http.StatusOK, api.AppResidualsResponse{Groups: groups, Count: len(groups)})
 }
 
 // handleAppUninstall moves the selected leftovers to the Trash.
@@ -137,12 +138,7 @@ func (s *Server) handleAppResidualsGrouped(w http.ResponseWriter, r *http.Reques
 // The whole uninstall list goes through here in one request: the Finder
 // automation is asked for once instead of once per application.
 func (s *Server) handleAppUninstall(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		BundleID  string   `json:"bundleID"`
-		BundleIDs []string `json:"bundleIDs"`
-		Paths     []string `json:"paths"`
-		DryRun    bool     `json:"dryRun"`
-	}
+	var body api.AppUninstallRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -161,11 +157,11 @@ func (s *Server) handleAppUninstall(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if body.DryRun {
-		writeJSON(w, http.StatusOK, map[string]any{
-			"dryRun":  true,
-			"moved":   []string{},
-			"failed":  []trash.FailedItem{},
-			"planned": body.Paths,
+		writeJSON(w, http.StatusOK, api.DryRunResponse{
+			DryRun:  true,
+			Moved:   []string{},
+			Failed:  []trash.FailedItem{},
+			Planned: body.Paths,
 		})
 		return
 	}
@@ -242,10 +238,7 @@ func (s *Server) handleCleanScan(w http.ResponseWriter, r *http.Request) {
 
 // handleCleanExecute moves the selected items to the Trash.
 func (s *Server) handleCleanExecute(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Paths  []string `json:"paths"`
-		DryRun bool     `json:"dryRun"`
-	}
+	var body api.CleanExecuteRequest
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -261,11 +254,11 @@ func (s *Server) handleCleanExecute(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if body.DryRun {
-		writeJSON(w, http.StatusOK, map[string]any{
-			"dryRun":  true,
-			"moved":   []string{},
-			"failed":  []trash.FailedItem{},
-			"planned": body.Paths,
+		writeJSON(w, http.StatusOK, api.DryRunResponse{
+			DryRun:  true,
+			Moved:   []string{},
+			Failed:  []trash.FailedItem{},
+			Planned: body.Paths,
 		})
 		return
 	}

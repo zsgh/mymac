@@ -25,6 +25,7 @@ make run       # 直接运行并自动打开浏览器
 make test      # 单元测试
 make lint      # go vet + gofmt 检查
 make bundle    # 打包成 build/mymac.app
+make openapi   # 重新生成 docs/ 里的接口描述
 ```
 
 启动后会在 `127.0.0.1:8888` 上监听，并自动打开浏览器。地址固定，不需要任何令牌，直接访问 <http://127.0.0.1:8888> 即可。
@@ -167,6 +168,7 @@ export PATH="$PATH":'/custom/bin'          # 后置
 ```
 cmd/mymac/          入口
 internal/
+  api/              接口清单、请求/响应类型、OpenAPI 描述生成
   apps/             应用扫描、Info.plist 解析、残留匹配
   audit/            审计日志
   cleaner/          缓存、日志、开发者缓存、大文件、重复文件、后台扫描任务
@@ -187,6 +189,7 @@ internal/
 web/                前端资源（go:embed 打进二进制）
 web/assets/ui.js    排序、详情抽屉、主题切换
 tools/genicon/      图标生成器
+tools/genopenapi/   生成 docs/ 里的接口描述
 ```
 
 ### 命令行参数
@@ -263,6 +266,33 @@ mymac **不会**给自己发信号、改优先级，也不会在端口页对自�
 
 ---
 
+## 接口文档
+
+HTTP 接口有一份 **OpenAPI 3.0** 描述，描述由代码生成，不会和实现对不上。
+
+| 位置 | 说明 |
+|---|---|
+| <http://127.0.0.1:8888/api/docs> | 浏览器里的接口文档，可以直接发请求（界面左下角也有「接口文档」按钮） |
+| <http://127.0.0.1:8888/api/openapi.json> | 机器可读的描述，Postman / 代码生成器 / 校验工具都能吃 |
+| `docs/openapi.json`、`docs/openapi.yaml` | 提交进仓库的同一份描述，不启动 mymac 也能给别的工具用 |
+
+```bash
+make openapi    # 接口变了之后重新生成 docs/ 里的文件
+```
+
+**为什么是生成的**：接口清单写在 `internal/api/ops.go` 一张表里，路由从这张表注册，
+描述也从这张表生成。表里少一个处理器，服务启动时会直接报错；多一个没写进表的路由，
+测试会失败。所以「文档和代码对不上」这件事在结构上就不成立。
+
+- `internal/api/types.go` —— 请求体和响应体的结构，处理器和描述用的是同一份类型。
+- `internal/api/schema.go` —— 从 Go 类型生成 JSON Schema，命名类型变成 `components/schemas`。
+- `internal/api/validate.go` —— 校验器，测试用它检查真实返回和描述是否一致。
+
+测试里会真的去调那些只读的接口，把返回的 JSON 和描述里的 schema 逐字段比对；
+所以「改了实现忘了改描述」会被 CI 拦下来。
+
+---
+
 ## 应用卸载
 
 - 点应用行的「**卸载**」不会删任何东西，只是把这个应用**加进下面的「卸载列表」**。列表可以累积多个应用。
@@ -321,3 +351,5 @@ make test
 - 单元测试：plist 解析、残留匹配、大小计算、白名单/黑名单、环境变量转义与标记块读写、`launchctl` 输出解析、`ps eww` 解析、告警阈值。
 - 集成测试：全部使用临时 `HOME`、临时目录和假的 `.app`；`launchctl` 用接口注入的假实现，**测试永远不会改动真实的 launchd 环境**。
 - 环境变量的转义用真的 `/bin/sh` 验证：source 之后逐字节比对。
+- 接口契约：路由和接口描述必须一一对应；只读接口会被真的调一次，返回的 JSON 要和描述里的 schema 逐字段对得上；
+  `docs/` 里的描述文件和当前代码对不上时测试也会失败。

@@ -5,6 +5,48 @@ macOS 清理 + 进程管理 + 环境变量管理工具。Go 后端，本地 Web 
 > 状态：Phase 0–7 已实现并在本机（macOS 26.5.2 / arm64）逐项验证。
 > 设计文档见 `DESIGN.md`，使用说明与安全模型见 `README.md`。
 
+## 第四轮迭代（2026-10-22）
+
+### 步骤 1：接口加 OpenAPI 描述
+- [x] 现象：接口有 50 多个，路由散在 `server.go` 和各个 `api_*.go` 里，
+      想知道有哪些参数、返回什么字段，只能去翻代码
+- [x] 约束：**不引第三方依赖**（本机直连 proxy.golang.org 不通，`GOPROXY=off`），
+      所以不用 swaggo / kin-openapi 这类注解式生成器
+- [x] 决策 A：接口清单写成**一张表**（`internal/api/ops.go`），
+      路由从这张表注册，描述也从这张表生成 → 文档和代码在结构上就不可能对不上
+- [x] 决策 B：请求/响应类型提到 `internal/api/types.go`，处理器和描述共用同一份类型
+- [x] 决策 C：JSON Schema 用反射从 Go 类型生成（`internal/api/schema.go`），
+      命名类型进 `components/schemas`，内嵌结构体按 `encoding/json` 的规则摊平
+- [x] 决策 D：OpenAPI **3.0.3**，兼容性最好；JSON 用标准库写，YAML 用一个只覆盖
+      本项目结构的写出器（`internal/api/encoding.go`），不引 YAML 库
+- [x] 产物：`GET /api/openapi.json`（机器可读）、`GET /api/docs`（自带页面，不联网）、
+      `docs/openapi.json` + `docs/openapi.yaml`（提交进仓库，`make openapi` 重新生成）
+- [x] 验收：48 个路径 / 52 个操作全部出现在描述里；YAML 与 JSON 解析回来完全一致
+- [x] 回归测试：`TestRoutesMatchTheSpec`（路由 ↔ 描述一一对应）、
+      `TestDocumentedAnswersMatchTheSpec`（真调只读接口，返回的 JSON 和 schema 逐字段比对）、
+      `TestCheckedInDocumentIsCurrent`（`docs/` 里的文件和代码对不上就失败）
+
+### 步骤 2：路由和描述对不上的漏洞
+- [x] 现象：原来 `api()` 帮助函数给 `/api/health`、`/api/audit` 等 4 个路径
+      一次性注册了 GET/POST/PUT/PATCH/DELETE 五个方法，`DELETE /api/health` 也返回 200
+- [x] 修法：改成表驱动，每个路径只注册文档里写明的方法，其余返回 405
+- [x] 顺带：表里少一个处理器 → 启动时直接 panic 报错，不会变成 404
+
+### 步骤 3：返回里的 null 列表
+- [x] 现象：契约测试发现空列表会返回 `"items": null`（Go 的 nil slice），
+      但描述里写的是数组
+- [x] 决策：字段是列表就永远是列表。`writeJSON` 出口统一把 nil slice / nil map 换成空值，
+      指针不动（nil 指针是「这里没有东西」，是有效答案）
+- [x] 影响：前端一直是 `d.items || []`，不受影响；描述与实现从此一致
+
+### 步骤 4：界面里的接口文档入口
+- [x] 左下角加「接口文档」按钮，新标签页打开 `/api/docs`
+- [x] 页面自己读 `/api/openapi.json`：搜索、按标签分组、参数表、请求体、返回结构，
+      还能直接发请求看结果
+- [x] 页面不引任何外部资源（不联网），样式和主界面一致
+
+---
+
 ## 第三轮迭代（2026-10-21）
 
 ### 步骤 1：单实例 + 固定端口 8888
